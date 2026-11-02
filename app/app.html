@@ -1,0 +1,426 @@
+<!-- Vivero DoMoVil - app de control del vivero (MQTT por WebSocket con TLS) -->
+<style>
+  :root{
+    --bg:#f3f5f1; --card:#ffffff; --ink:#18221b; --muted:#5d6b61; --line:#dde3dc;
+    --verde:#2f7d4a; --verde-claro:#e3f1e7; --rojo:#c0392b; --rojo-claro:#fbe6e3;
+    --azul:#2a6fb0; --azul-claro:#e2edf8; --ambar:#b7791f; --ambar-claro:#fdf1dc;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#121714; --card:#1b221d; --ink:#e7ede8; --muted:#9aa89e; --line:#2c352f;
+      --verde:#5cb87c; --verde-claro:#1f3527; --rojo:#e46a5c; --rojo-claro:#3a2220;
+      --azul:#6aa8e6; --azul-claro:#1d2c3b; --ambar:#e0a84a; --ambar-claro:#3a2f1c;
+    }
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0}
+  .app{max-width:520px;margin:0 auto;padding:12px 16px 88px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0 12px}
+  header h1{font-size:20px;margin:0;letter-spacing:.2px}
+  header h1 b{color:var(--verde)}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px;border-radius:999px;background:var(--line);color:var(--muted);white-space:nowrap}
+  .pill i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+  .pill.ok{background:var(--verde-claro);color:var(--verde)}
+  .pill.mal{background:var(--rojo-claro);color:var(--rojo)}
+  .pill.aviso{background:var(--ambar-claro);color:var(--ambar)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 10px;font-weight:600}
+  .grande{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .medida{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .medida small{color:var(--muted);font-size:13px}
+  .medida .v{font-size:40px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+  .medida .v span{font-size:18px;font-weight:500;color:var(--muted);margin-left:2px}
+  .fila{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+  .fila:first-of-type{border-top:0}
+  .estado{font-weight:600}
+  .estado.verde{color:var(--verde)} .estado.rojo{color:var(--rojo)} .estado.azul{color:var(--azul)} .estado.ambar{color:var(--ambar)}
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--line);border-radius:10px;padding:3px;gap:3px}
+  .seg button{border:0;background:transparent;color:var(--muted);padding:10px;border-radius:8px;font:inherit;font-weight:600}
+  .seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .botones{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .botones.dos{grid-template-columns:1fr 1fr}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:12px 8px;border-radius:10px;font:inherit;font-weight:600;min-height:46px}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.4}
+  .btn.prim{background:var(--verde);border-color:var(--verde);color:#fff}
+  .btn.peligro{background:var(--rojo);border-color:var(--rojo);color:#fff}
+  .btn.azul{background:var(--azul);border-color:var(--azul);color:#fff}
+  .nota{color:var(--muted);font-size:13px;margin:8px 0 0}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+  .doble{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .alarma{padding:10px 0;border-top:1px solid var(--line)}
+  .alarma:first-child{border-top:0}
+  .alarma time{display:block;color:var(--muted);font-size:12px}
+  nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+  nav button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;padding:6px 2px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:2px}
+  nav button svg{width:22px;height:22px}
+  nav button.on{color:var(--verde);background:var(--verde-claro)}
+  .vista{display:none}.vista.on{display:block}
+  .badge{background:var(--rojo);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;margin-left:4px}
+  .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
+  .toast.on{opacity:.95}
+</style>
+
+<div class="app">
+  <header>
+    <h1>Vivero <b>DoMoVil</b></h1>
+    <span id="conexion" class="pill"><i></i><span>Sin conectar</span></span>
+  </header>
+
+  <!-- ============ INICIO ============ -->
+  <section id="v-inicio" class="vista on">
+    <div class="grande">
+      <div class="medida"><small>Temperatura</small><div class="v" id="temp">--<span>°C</span></div></div>
+      <div class="medida"><small>Humedad</small><div class="v" id="hum">--<span>%</span></div></div>
+    </div>
+    <p class="nota" id="actualizado">Esperando datos del vivero…</p>
+
+    <div class="card" style="margin-top:12px">
+      <h2>Estado</h2>
+      <div class="fila"><span>Equipo</span><span class="estado" id="online">—</span></div>
+      <div class="fila"><span>Venteo</span><span class="estado" id="venteo">—</span></div>
+      <div class="fila"><span>Riego</span><span class="estado" id="riego">—</span></div>
+      <div class="fila"><span>Sensor</span><span class="estado" id="sensor">—</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Control</h2>
+      <div class="seg" id="modo">
+        <button data-modo="auto">Automático</button>
+        <button data-modo="manual">Manual</button>
+      </div>
+      <p class="nota" id="modo-nota">En automático el equipo decide solo. Pasá a manual para mover el venteo o regar.</p>
+
+      <label>Venteo</label>
+      <div class="botones">
+        <button class="btn prim"    data-cmd="venteo" data-msg="abrir"  data-manual>Abrir</button>
+        <button class="btn azul"    data-cmd="venteo" data-msg="cerrar" data-manual>Cerrar</button>
+        <button class="btn peligro" data-cmd="venteo" data-msg="parar">Parar</button>
+      </div>
+      <label>Riego</label>
+      <div class="botones dos">
+        <button class="btn prim" data-cmd="riego" data-msg="on" data-manual>Regar</button>
+        <button class="btn"      data-cmd="riego" data-msg="off">Cortar riego</button>
+      </div>
+      <p class="nota">«Parar» y «Cortar riego» funcionan siempre, también en automático.</p>
+    </div>
+  </section>
+
+  <!-- ============ AJUSTES ============ -->
+  <section id="v-ajustes" class="vista">
+    <form class="card" id="f-ajustes">
+      <h2>Venteo</h2>
+      <div class="doble">
+        <div><label for="temp_abrir">Abre arriba de (°C)</label><input id="temp_abrir" type="number" step="0.5" inputmode="decimal"></div>
+        <div><label for="temp_cerrar">Cierra abajo de (°C)</label><input id="temp_cerrar" type="number" step="0.5" inputmode="decimal"></div>
+      </div>
+      <label for="motor_max_s">Tiempo máximo del motor (s)</label>
+      <input id="motor_max_s" type="number" step="1" inputmode="numeric">
+
+      <h2 style="margin-top:18px">Riego</h2>
+      <div class="doble">
+        <div><label for="hum_riego_on">Riega debajo de (%)</label><input id="hum_riego_on" type="number" step="1" inputmode="decimal"></div>
+        <div><label for="hum_riego_off">Corta arriba de (%)</label><input id="hum_riego_off" type="number" step="1" inputmode="decimal"></div>
+      </div>
+      <div class="doble">
+        <div><label for="riego_max_min">Riego máximo (min)</label><input id="riego_max_min" type="number" step="1" inputmode="numeric"></div>
+        <div><label for="riego_pausa_min">Pausa entre riegos (min)</label><input id="riego_pausa_min" type="number" step="1" inputmode="numeric"></div>
+      </div>
+      <p class="nota" id="ajustes-nota">Los valores quedan guardados en el equipo, aunque se corte la luz.</p>
+      <div class="botones dos">
+        <button type="button" class="btn" id="ajustes-recargar">Volver a leer</button>
+        <button type="submit" class="btn prim">Guardar</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============ ALARMAS ============ -->
+  <section id="v-alarmas" class="vista">
+    <div class="card">
+      <h2>Últimas alarmas</h2>
+      <div id="alarmas"><p class="nota">Sin alarmas.</p></div>
+    </div>
+    <button class="btn" id="alarmas-borrar" style="width:100%">Borrar lista</button>
+  </section>
+
+  <!-- ============ CONEXIÓN ============ -->
+  <section id="v-conexion" class="vista">
+    <form class="card" id="f-conexion" autocomplete="off">
+      <h2>Broker MQTT</h2>
+      <label for="c-host">Dirección</label>
+      <input id="c-host" placeholder="xxxx.ala.us-east-1.emqxsl.com" autocapitalize="off" spellcheck="false">
+      <div class="doble">
+        <div><label for="c-port">Puerto (WebSocket TLS)</label><input id="c-port" type="number" inputmode="numeric"></div>
+        <div><label for="c-nodo">Equipo</label><input id="c-nodo" autocapitalize="off" spellcheck="false"></div>
+      </div>
+      <label for="c-user">Usuario</label>
+      <input id="c-user" autocapitalize="off" spellcheck="false">
+      <label for="c-pass">Clave</label>
+      <input id="c-pass" type="password">
+      <p class="nota">Estos datos quedan guardados solo en este celular.</p>
+      <div class="botones dos">
+        <button type="button" class="btn" id="c-desconectar">Desconectar</button>
+        <button type="submit" class="btn prim">Guardar y conectar</button>
+      </div>
+    </form>
+    <p class="nota" id="c-detalle"></p>
+  </section>
+</div>
+
+<nav>
+  <button data-vista="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</button>
+  <button data-vista="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
+  <button data-vista="alarmas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span>Alarmas<span id="badge" class="badge" hidden></span></span></button>
+  <button data-vista="conexion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/><path d="M2 9a14 14 0 0 1 20 0"/></svg>Conexión</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script src="mqtt.min.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  // ---------- Utilidades ----------
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+  const leer = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  let toastT;
+  function avisar(txt){ const t = $('#toast'); t.textContent = txt; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+  const hora = (d) => d.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  const fecha = (d) => d.toLocaleString('es-AR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+
+  // ---------- Configuración de conexión (guardada en el celular) ----------
+  const DEF = { host: 'p64138d1.ala.us-east-1.emqxsl.com', port: 8084, nodo: 'nodo1', user: 'vivero-app', pass: '' };
+  let cfg = Object.assign({}, DEF, leer('dm.conexion', {}));
+
+  // ---------- Estado de la app ----------
+  let cliente = null;
+  let estado = null, ultimoEstado = 0, online = null, cfgEquipo = null;
+  let alarmas = leer('dm.alarmas', []);
+  let noLeidas = 0;
+
+  // ---------- Navegación ----------
+  $$('nav button').forEach(b => b.addEventListener('click', () => {
+    $$('nav button').forEach(x => x.classList.toggle('on', x === b));
+    $$('.vista').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.vista));
+    if (b.dataset.vista === 'alarmas') { noLeidas = 0; pintarBadge(); }
+    if (b.dataset.vista === 'ajustes') cargarAjustes();
+    window.scrollTo(0, 0);
+  }));
+
+  // ---------- Conexión MQTT ----------
+  const base = () => 'vivero/' + cfg.nodo + '/';
+
+  function pill(clase, txt){ const p = $('#conexion'); p.className = 'pill ' + clase; p.lastElementChild.textContent = txt; }
+
+  function conectar(){
+    desconectar();
+    if (!cfg.host || !cfg.user || !cfg.pass) {
+      pill('aviso', 'Falta configurar');
+      $('#c-detalle').textContent = 'Completá dirección, usuario y clave en Conexión.';
+      return;
+    }
+    // wss = WebSocket con TLS (cifrado). Solo para pruebas locales se permite ws sin cifrar.
+    const local = /^(localhost|127\.0\.0\.1)$/.test(cfg.host);
+    const url = (local ? 'ws://' : 'wss://') + cfg.host + ':' + cfg.port + '/mqtt';
+    pill('aviso', 'Conectando…');
+    cliente = mqtt.connect(url, {
+      username: cfg.user,
+      password: cfg.pass,
+      clientId: 'domovil-' + Math.random().toString(16).slice(2, 10),  // único: dos celulares no se pisan
+      keepalive: 30,
+      reconnectPeriod: 4000,
+      connectTimeout: 15000,
+      clean: true
+    });
+    cliente.on('connect', () => {
+      pill('ok', 'En línea');
+      $('#c-detalle').textContent = 'Conectado a ' + cfg.host + ' como ' + cfg.user + '.';
+      cliente.subscribe([base() + 'estado', base() + 'online', base() + 'config', base() + 'alarma'], { qos: 1 });
+      ordenar('estado', '1');  // pide el estado al instante
+    });
+    cliente.on('reconnect', () => pill('aviso', 'Reconectando…'));
+    cliente.on('offline',   () => pill('mal', 'Sin internet'));
+    cliente.on('error', (e) => {
+      const m = String(e && e.message || e);
+      pill('mal', /auth|Not authorized|Bad User/i.test(m) ? 'Usuario o clave mal' : 'Error');
+      $('#c-detalle').textContent = 'Detalle: ' + m;
+      if (/auth|Not authorized|Bad User/i.test(m)) cliente.end(true);  // no insistir con clave mala
+    });
+    cliente.on('message', alMensaje);
+  }
+
+  function desconectar(){
+    if (cliente) { cliente.end(true); cliente = null; }
+    pill('', 'Sin conectar');
+  }
+
+  function ordenar(sub, msg){
+    if (!cliente || !cliente.connected) { avisar('No hay conexión con el broker'); return false; }
+    cliente.publish(base() + 'cmd/' + sub, String(msg), { qos: 1, retain: false });
+    return true;
+  }
+
+  // ---------- Mensajes que llegan ----------
+  function alMensaje(topic, buf){
+    const txt = buf.toString();
+    const sub = topic.slice(base().length);
+    if (sub === 'estado') {
+      try { estado = JSON.parse(txt); ultimoEstado = Date.now(); pintar(); } catch (e) {}
+    } else if (sub === 'online') {
+      online = (txt === 'online'); pintar();
+    } else if (sub === 'config') {
+      try { cfgEquipo = JSON.parse(txt); if ($('#v-ajustes').classList.contains('on') && !editando) cargarAjustes(); } catch (e) {}
+    } else if (sub === 'alarma') {
+      alarmas.unshift({ t: Date.now(), m: txt });
+      alarmas = alarmas.slice(0, 50);
+      guardar('dm.alarmas', alarmas);
+      if (!$('#v-alarmas').classList.contains('on')) noLeidas++;
+      pintarAlarmas(); pintarBadge();
+      avisar('⚠ ' + txt);
+    }
+  }
+
+  // ---------- Pantalla de inicio ----------
+  const NOMBRE_VENTEO = {
+    cerrado: ['Cerrado', 'azul'], abierto: ['Abierto', 'verde'], abriendo: ['Abriendo…', 'ambar'],
+    cerrando: ['Cerrando…', 'ambar'], error: ['Error', 'rojo'], desconocido: ['Posición desconocida', 'ambar']
+  };
+  function poner(id, txt, color){ const e = $('#' + id); e.textContent = txt; e.className = 'estado' + (color ? ' ' + color : ''); }
+
+  function pintar(){
+    const s = estado;
+    $('#temp').firstChild.nodeValue = (s && s.temp != null) ? s.temp.toFixed(1) : '--';
+    $('#hum').firstChild.nodeValue  = (s && s.hum  != null) ? Math.round(s.hum) : '--';
+
+    if (online === true)  poner('online', 'En línea', 'verde');
+    else if (online === false) poner('online', 'Desconectado', 'rojo');
+    else poner('online', '—');
+
+    if (!s) return;
+    const v = NOMBRE_VENTEO[s.venteo] || [s.venteo, ''];
+    poner('venteo', v[0], v[1]);
+    poner('riego', s.riego === 'on' ? 'Regando' : 'Apagado', s.riego === 'on' ? 'azul' : '');
+    poner('sensor', s.sensor_ok ? 'OK' : 'Sin lectura', s.sensor_ok ? 'verde' : 'rojo');
+
+    const auto = s.modo === 'auto';
+    $$('#modo button').forEach(b => b.classList.toggle('on', b.dataset.modo === s.modo));
+    $$('[data-manual]').forEach(b => b.disabled = auto);
+    $('#modo-nota').textContent = auto
+      ? 'En automático el equipo decide solo. Pasá a manual para mover el venteo o regar.'
+      : 'Modo manual: el equipo no decide nada solo. Acordate de volver a automático.';
+    edad();
+  }
+
+  // Cuánto hace que llegó el último dato (el equipo publica cada 30 s)
+  function edad(){
+    if (!ultimoEstado) return;
+    const s = Math.round((Date.now() - ultimoEstado) / 1000);
+    const n = $('#actualizado');
+    n.textContent = 'Actualizado ' + (s < 5 ? 'recién' : 'hace ' + (s < 60 ? s + ' s' : Math.round(s / 60) + ' min'));
+    n.style.color = s > 120 ? 'var(--rojo)' : '';
+  }
+  setInterval(edad, 5000);
+
+  $$('#modo button').forEach(b => b.addEventListener('click', () => {
+    if (ordenar('modo', b.dataset.modo)) avisar(b.dataset.modo === 'auto' ? 'Pasando a automático' : 'Pasando a manual');
+  }));
+  $$('[data-cmd]').forEach(b => b.addEventListener('click', () => {
+    if (ordenar(b.dataset.cmd, b.dataset.msg)) avisar('Orden enviada: ' + b.textContent);
+  }));
+
+  // ---------- Ajustes ----------
+  // Mismos límites que valida el ESP32 (si no, lo rechaza y manda alarma)
+  const CAMPOS = ['temp_abrir','temp_cerrar','motor_max_s','hum_riego_on','hum_riego_off','riego_max_min','riego_pausa_min'];
+  let editando = false;
+  $('#f-ajustes').addEventListener('input', () => editando = true);
+
+  function cargarAjustes(){
+    editando = false;
+    if (!cfgEquipo) { $('#ajustes-nota').textContent = 'Todavía no llegaron los valores del equipo.'; return; }
+    CAMPOS.forEach(k => { $('#' + k).value = cfgEquipo[k]; });
+    $('#ajustes-nota').textContent = 'Los valores quedan guardados en el equipo, aunque se corte la luz.';
+  }
+  $('#ajustes-recargar').addEventListener('click', () => { ordenar('estado', '1'); cargarAjustes(); });
+
+  function validar(n){
+    const err = [];
+    if (!(n.temp_abrir >= -10 && n.temp_abrir <= 60)) err.push('La temperatura de abrir va entre -10 y 60 °C.');
+    if (!(n.temp_cerrar >= -10 && n.temp_cerrar <= 60)) err.push('La temperatura de cerrar va entre -10 y 60 °C.');
+    if (!(n.temp_cerrar < n.temp_abrir - 0.5)) err.push('Cerrar tiene que ser al menos 0,5 °C menos que abrir.');
+    if (!(n.hum_riego_on >= 0 && n.hum_riego_off <= 100 && n.hum_riego_on < n.hum_riego_off)) err.push('La humedad para regar tiene que ser menor que la de cortar (0 a 100 %).');
+    if (!(n.motor_max_s >= 5 && n.motor_max_s <= 600)) err.push('El tiempo del motor va entre 5 y 600 s.');
+    if (!(n.riego_max_min >= 1 && n.riego_max_min <= 120)) err.push('El riego máximo va entre 1 y 120 min.');
+    if (!(n.riego_pausa_min >= 0 && n.riego_pausa_min <= 1440)) err.push('La pausa va entre 0 y 1440 min.');
+    return err;
+  }
+
+  $('#f-ajustes').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (!cfgEquipo) { avisar('Todavía no llegaron los valores del equipo'); return; }
+    const n = {};
+    CAMPOS.forEach(k => n[k] = parseFloat($('#' + k).value));
+    const err = validar(n);
+    if (err.length) { $('#ajustes-nota').textContent = err.join(' '); $('#ajustes-nota').style.color = 'var(--rojo)'; return; }
+    $('#ajustes-nota').style.color = '';
+    // Orden de envío: el ESP32 valida cada valor contra los demás, así que si se agranda
+    // un rango primero se mueve el extremo que lo "abre" (ej.: subir abrir antes que cerrar).
+    const cambios = CAMPOS.filter(k => n[k] !== cfgEquipo[k]);
+    if (!cambios.length) { avisar('No hay cambios'); return; }
+    const orden = cambios.sort((a, b) => prioridad(a, n) - prioridad(b, n));
+    let ok = true;
+    orden.forEach(k => { ok = ordenar('config/' + k, n[k]) && ok; });
+    if (ok) { editando = false; avisar('Ajustes enviados'); }
+  });
+  function prioridad(k, n){
+    if (k === 'temp_abrir')    return n.temp_abrir > cfgEquipo.temp_abrir ? 0 : 1;
+    if (k === 'temp_cerrar')   return n.temp_cerrar < cfgEquipo.temp_cerrar ? 0 : 1;
+    if (k === 'hum_riego_off') return n.hum_riego_off > cfgEquipo.hum_riego_off ? 0 : 1;
+    if (k === 'hum_riego_on')  return n.hum_riego_on < cfgEquipo.hum_riego_on ? 0 : 1;
+    return 2;
+  }
+
+  // ---------- Alarmas ----------
+  function pintarAlarmas(){
+    const c = $('#alarmas');
+    if (!alarmas.length) { c.innerHTML = '<p class="nota">Sin alarmas.</p>'; return; }
+    c.innerHTML = '';
+    alarmas.forEach(a => {
+      const d = document.createElement('div'); d.className = 'alarma';
+      const t = document.createElement('time'); t.textContent = fecha(new Date(a.t));
+      const m = document.createElement('div'); m.textContent = a.m;
+      d.append(t, m); c.append(d);
+    });
+  }
+  function pintarBadge(){ const b = $('#badge'); b.hidden = !noLeidas; b.textContent = noLeidas; }
+  $('#alarmas-borrar').addEventListener('click', () => { alarmas = []; guardar('dm.alarmas', alarmas); pintarAlarmas(); });
+
+  // ---------- Pantalla de conexión ----------
+  function cargarConexion(){
+    $('#c-host').value = cfg.host; $('#c-port').value = cfg.port; $('#c-nodo').value = cfg.nodo;
+    $('#c-user').value = cfg.user; $('#c-pass').value = cfg.pass;
+  }
+  $('#f-conexion').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    cfg = {
+      host: $('#c-host').value.trim().replace(/^(wss?|mqtts?):\/\//, '').replace(/[:/].*$/, ''),
+      port: parseInt($('#c-port').value, 10) || 8084,
+      nodo: $('#c-nodo').value.trim() || 'nodo1',
+      user: $('#c-user').value.trim(),
+      pass: $('#c-pass').value
+    };
+    guardar('dm.conexion', cfg);
+    estado = null; online = null; cfgEquipo = null; ultimoEstado = 0;
+    conectar();
+    avisar('Conectando…');
+  });
+  $('#c-desconectar').addEventListener('click', () => { desconectar(); avisar('Desconectado'); });
+
+  // ---------- Arranque ----------
+  cargarConexion(); pintarAlarmas(); pintar();
+  if (cfg.pass) conectar();
+  else { pill('aviso', 'Falta configurar'); $$('nav button')[3].click(); }
+})();
+</script>
