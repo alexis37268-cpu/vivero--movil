@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" font-family="Arial, Helvetica, sans-serif">
+  <rect width="1600" height="1000" fill="#ffffff"/>
+
+  <!-- Titulo -->
+  <text x="80" y="62" font-size="34" font-weight="bold" fill="#1b2a20">Vivero DoMoVil — Conexiones etapa 1 (banco de prueba)</text>
+  <text x="80" y="96" font-size="18" fill="#55645a">ESP32-WROOM-32U + DHT11 + módulo de 3 relés + 2 finales de carrera. Sin motor ni válvula todavía.</text>
+
+  <!-- ================= ESP32 ================= -->
+  <rect x="80" y="170" width="300" height="680" rx="14" fill="#20303a" stroke="#0f1a20" stroke-width="3"/>
+  <rect x="150" y="190" width="160" height="110" rx="6" fill="#b9c2c8" stroke="#7b868c" stroke-width="2"/>
+  <text x="230" y="240" font-size="22" font-weight="bold" fill="#20303a" text-anchor="middle">ESP32</text>
+  <text x="230" y="266" font-size="16" fill="#20303a" text-anchor="middle">WROOM-32U</text>
+  <circle cx="290" cy="208" r="7" fill="#d4a017" stroke="#7a5c00" stroke-width="2"/>
+  <text x="120" y="330" font-size="14" fill="#f2c94c">● u.FL: ANTENA</text>
+  <text x="120" y="350" font-size="14" fill="#f2c94c">  obligatoria</text>
+  <text x="120" y="800" font-size="14" fill="#cfd8dc">Jumper amarillo</text>
+  <text x="120" y="820" font-size="14" fill="#cfd8dc">de la placa en 3,3 V</text>
+
+  <!-- pines del ESP32 -->
+  <g font-size="17" font-weight="bold" fill="#ffffff" text-anchor="end">
+    <text x="365" y="246">3V3</text>
+    <text x="365" y="296">GND</text>
+    <text x="365" y="346">5V</text>
+    <text x="365" y="426">GPIO 4</text>
+    <text x="365" y="506">GPIO 25</text>
+    <text x="365" y="556">GPIO 26</text>
+    <text x="365" y="606">GPIO 27</text>
+    <text x="365" y="696">GPIO 13</text>
+    <text x="365" y="746">GPIO 14</text>
+  </g>
+  <g fill="#d9d9d9" stroke="#555" stroke-width="2">
+    <circle cx="380" cy="240" r="7"/><circle cx="380" cy="290" r="7"/><circle cx="380" cy="340" r="7"/>
+    <circle cx="380" cy="420" r="7"/><circle cx="380" cy="500" r="7"/><circle cx="380" cy="550" r="7"/>
+    <circle cx="380" cy="600" r="7"/><circle cx="380" cy="690" r="7"/><circle cx="380" cy="740" r="7"/>
+  </g>
+
+  <!-- ================= CABLES ================= -->
+  <g fill="none" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 3V3 -> DHT + -->
+    <path d="M387 240 H600 V200 H993" stroke="#d32f2f"/>
+    <!-- GPIO4 -> DHT out -->
+    <path d="M387 420 H640 V240 H993" stroke="#2e7d32"/>
+    <!-- 5V -> rele VCC -->
+    <path d="M387 340 H700 V430 H993" stroke="#ef6c00"/>
+    <!-- GND bus -->
+    <path d="M387 290 H900" stroke="#111"/>
+    <path d="M900 280 V855 H1160 V690" stroke="#111"/>
+    <path d="M900 280 H993" stroke="#111"/>
+    <path d="M900 465 H993" stroke="#111"/>
+    <path d="M1130 690 H1160" stroke="#111"/>
+    <path d="M1130 740 H1160" stroke="#111"/>
+    <!-- señales a reles -->
+    <path d="M387 500 H993" stroke="#1565c0"/>
+    <path d="M387 550 H993" stroke="#6a1b9a"/>
+    <path d="M387 600 H993" stroke="#00838f"/>
+    <!-- finales de carrera -->
+    <path d="M387 690 H1000" stroke="#c2185b"/>
+    <path d="M387 740 H1000" stroke="#795548"/>
+  </g>
+  <!-- empalmes del GND -->
+  <g fill="#111"><circle cx="900" cy="290" r="8"/><circle cx="900" cy="465" r="8"/><circle cx="1160" cy="740" r="8"/></g>
+
+  <!-- ================= DHT11 ================= -->
+  <rect x="1000" y="160" width="220" height="150" rx="10" fill="#4fa3e0" stroke="#1f6fa8" stroke-width="3"/>
+  <g fill="#ffffff" opacity=".55"><rect x="1120" y="180" width="80" height="12" rx="3"/><rect x="1120" y="202" width="80" height="12" rx="3"/><rect x="1120" y="224" width="80" height="12" rx="3"/><rect x="1120" y="246" width="80" height="12" rx="3"/></g>
+  <text x="1110" y="300" font-size="20" font-weight="bold" fill="#0d3c61" text-anchor="middle">DHT11</text>
+  <g font-size="17" font-weight="bold" fill="#0d3c61"><text x="1014" y="206">+</text><text x="1014" y="246">out</text><text x="1014" y="286">−</text></g>
+  <g fill="#d9d9d9" stroke="#555" stroke-width="2"><circle cx="1000" cy="200" r="7"/><circle cx="1000" cy="240" r="7"/><circle cx="1000" cy="280" r="7"/></g>
+
+  <!-- ================= MODULO 3 RELES ================= -->
+  <rect x="1000" y="400" width="300" height="240" rx="10" fill="#1e5aa8" stroke="#0e3566" stroke-width="3"/>
+  <text x="1150" y="630" font-size="18" font-weight="bold" fill="#ffffff" text-anchor="middle">Módulo 3 relés 5 V</text>
+  <g font-size="16" font-weight="bold" fill="#ffffff">
+    <text x="1014" y="436">VCC</text><text x="1014" y="471">GND</text>
+    <text x="1014" y="506">IN1</text><text x="1014" y="556">IN2</text><text x="1014" y="606">IN3</text>
+  </g>
+  <g fill="#d9d9d9" stroke="#555" stroke-width="2">
+    <circle cx="1000" cy="430" r="7"/><circle cx="1000" cy="465" r="7"/>
+    <circle cx="1000" cy="500" r="7"/><circle cx="1000" cy="550" r="7"/><circle cx="1000" cy="600" r="7"/>
+  </g>
+  <g fill="#2b2b2b"><rect x="1150" y="485" width="60" height="30" rx="4"/><rect x="1150" y="535" width="60" height="30" rx="4"/><rect x="1150" y="585" width="60" height="30" rx="4"/></g>
+  <g font-size="14" fill="#ffffff" text-anchor="middle"><text x="1180" y="505">K1</text><text x="1180" y="555">K2</text><text x="1180" y="605">K3</text></g>
+  <g font-size="17" font-weight="bold">
+    <text x="1320" y="506" fill="#1565c0">K1 → ABRIR venteo</text>
+    <text x="1320" y="556" fill="#6a1b9a">K2 → CERRAR venteo</text>
+    <text x="1320" y="606" fill="#00838f">K3 → RIEGO</text>
+  </g>
+  <text x="1320" y="436" font-size="14" fill="#55645a">Etapa 1: solo se escucha el clic</text>
+  <text x="1320" y="456" font-size="14" fill="#55645a">y prende el LED de cada relé.</text>
+
+  <!-- ================= FINALES DE CARRERA ================= -->
+  <g stroke="#333" stroke-width="4" fill="none" stroke-linecap="round">
+    <line x1="1000" y1="690" x2="1040" y2="690"/><line x1="1040" y1="690" x2="1095" y2="672"/><line x1="1100" y1="690" x2="1130" y2="690"/>
+    <line x1="1000" y1="740" x2="1040" y2="740"/><line x1="1040" y1="740" x2="1095" y2="722"/><line x1="1100" y1="740" x2="1130" y2="740"/>
+  </g>
+  <g fill="#ffffff" stroke="#333" stroke-width="3"><circle cx="1040" cy="690" r="5"/><circle cx="1100" cy="690" r="5"/><circle cx="1040" cy="740" r="5"/><circle cx="1100" cy="740" r="5"/></g>
+  <g font-size="17" font-weight="bold">
+    <text x="1190" y="696" fill="#c2185b">FIN ABIERTO (NA) → GPIO 13</text>
+    <text x="1190" y="746" fill="#795548">FIN CERRADO (NA) → GPIO 14</text>
+  </g>
+  <text x="1190" y="772" font-size="14" fill="#55645a">Al pisarse cierra a GND. Sin resistencia:</text>
+  <text x="1190" y="790" font-size="14" fill="#55645a">el ESP32 usa su pull-up interna.</text>
+
+  <!-- ================= NOTAS ================= -->
+  <rect x="80" y="890" width="760" height="100" rx="10" fill="#f4f7f4" stroke="#cfd8d1" stroke-width="2"/>
+  <text x="100" y="920" font-size="17" font-weight="bold" fill="#1b2a20">En config.h antes de cargar:</text>
+  <text x="100" y="946" font-size="16" fill="#1b2a20">DHT_TIPO DHT11 · MQTT_KEEPALIVE_S 30 · RELE_ACTIVO_ALTO false</text>
+  <text x="100" y="972" font-size="14" fill="#55645a">(si los relés quedan al revés, cambiar RELE_ACTIVO_ALTO a true)</text>
+  <rect x="860" y="890" width="660" height="100" rx="10" fill="#fff6e5" stroke="#f0d59a" stroke-width="2"/>
+  <text x="880" y="920" font-size="17" font-weight="bold" fill="#7a5200">No usar (reservados):</text>
+  <text x="880" y="946" font-size="16" fill="#7a5200">GPIO 32 a 39 → sensores de humedad de suelo</text>
+  <text x="880" y="970" font-size="16" fill="#7a5200">GPIO 5, 18, 19, 23 → LoRa (versión futura)</text>
+
+  <!-- Leyenda GND -->
+  <text x="910" y="905" font-size="1" fill="#fff">.</text>
+</svg>

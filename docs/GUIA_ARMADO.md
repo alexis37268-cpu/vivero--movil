@@ -25,6 +25,8 @@ Se arma en **dos etapas**: primero con LEDs/relés sin carga (no se rompe nada s
 
 ## 2. Conexiones (etapa 1)
 
+![Diagrama de conexiones](conexiones.png)
+
 | Elemento | Pin del ESP32 | Notas |
 |---|---|---|
 | DHT11 `+` | 3V3 | Jumper amarillo de la placa en **3,3 V** |
