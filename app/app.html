@@ -1,13 +1,13 @@
 <!-- Vivero Sol Puntano - app de control del vivero (MQTT por WebSocket con TLS) -->
 <style>
   :root{
-    --bg:#f3f5f1; --card:#ffffff; --ink:#18221b; --muted:#5d6b61; --line:#dde3dc;
+    --bg:#2e6b3f; --campo:#f3f5f1; --sobre-bg:#ffffff; --sobre-bg-suave:#d3e6d8; --sol:#f6bd25; --card:#ffffff; --ink:#18221b; --muted:#5d6b61; --line:#dde3dc;
     --verde:#2f7d4a; --verde-claro:#e3f1e7; --rojo:#c0392b; --rojo-claro:#fbe6e3;
     --azul:#2a6fb0; --azul-claro:#e2edf8; --ambar:#b7791f; --ambar-claro:#fdf1dc;
   }
   @media (prefers-color-scheme: dark){
     :root{
-      --bg:#121714; --card:#1b221d; --ink:#e7ede8; --muted:#9aa89e; --line:#2c352f;
+      --bg:#11301c; --campo:#121714; --sobre-bg:#eef5ef; --sobre-bg-suave:#a9c6b1; --sol:#f2c14e; --card:#1b221d; --ink:#e7ede8; --muted:#9aa89e; --line:#2c352f;
       --verde:#5cb87c; --verde-claro:#1f3527; --rojo:#e46a5c; --rojo-claro:#3a2220;
       --azul:#6aa8e6; --azul-claro:#1d2c3b; --ambar:#e0a84a; --ambar-claro:#3a2f1c;
     }
@@ -20,7 +20,9 @@
   .marca img{height:44px;width:auto;background:#fff;border-radius:10px;padding:4px 6px;box-shadow:0 0 0 1px var(--line);flex:none}
   header h1{font-size:16px;margin:0;letter-spacing:.1px;line-height:1.15;white-space:nowrap}
   @media (max-width:380px){.marca img{height:38px}header h1{font-size:15px}.pill{font-size:12px;padding:4px 8px}}
-  header h1 b{color:var(--verde)}
+  header h1{color:var(--sobre-bg)}
+  header h1 b{color:var(--sol)}
+  #actualizado,#c-detalle{color:var(--sobre-bg-suave)}
   .pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px;border-radius:999px;background:var(--line);color:var(--muted);white-space:nowrap}
   .pill i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
   .pill.ok{background:var(--verde-claro);color:var(--verde)}
@@ -50,7 +52,7 @@
   .btn.azul{background:var(--azul);border-color:var(--azul);color:#fff}
   .nota{color:var(--muted);font-size:13px;margin:8px 0 0}
   label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-  input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+  input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--campo);color:var(--ink);font:inherit}
   .doble{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .alarma{padding:10px 0;border-top:1px solid var(--line)}
   .alarma:first-child{border-top:0}
@@ -61,7 +63,7 @@
   nav button.on{color:var(--verde);background:var(--verde-claro)}
   .vista{display:none}.vista.on{display:block}
   .badge{background:var(--rojo);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;margin-left:4px}
-  .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
+  .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
 </style>
 
@@ -323,7 +325,7 @@
     const s = Math.round((Date.now() - ultimoEstado) / 1000);
     const n = $('#actualizado');
     n.textContent = 'Actualizado ' + (s < 5 ? 'recién' : 'hace ' + (s < 60 ? s + ' s' : Math.round(s / 60) + ' min'));
-    n.style.color = s > 120 ? 'var(--rojo)' : '';
+    n.style.color = s > 120 ? 'var(--sol)' : '';   // amarillo: se lee bien sobre el verde
   }
   setInterval(edad, 5000);
 
