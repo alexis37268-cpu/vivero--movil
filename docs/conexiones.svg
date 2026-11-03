@@ -6,15 +6,15 @@
   <text x="80" y="96" font-size="18" fill="#55645a">ESP32-WROOM-32U + DHT11 + módulo de 3 relés + 2 finales de carrera. Sin motor ni válvula todavía.</text>
 
   <!-- ================= ESP32 ================= -->
-  <rect x="80" y="170" width="300" height="680" rx="14" fill="#20303a" stroke="#0f1a20" stroke-width="3"/>
+  <rect x="80" y="170" width="300" height="710" rx="14" fill="#20303a" stroke="#0f1a20" stroke-width="3"/>
   <rect x="150" y="190" width="160" height="110" rx="6" fill="#b9c2c8" stroke="#7b868c" stroke-width="2"/>
   <text x="230" y="240" font-size="22" font-weight="bold" fill="#20303a" text-anchor="middle">ESP32</text>
   <text x="230" y="266" font-size="16" fill="#20303a" text-anchor="middle">WROOM-32U</text>
   <circle cx="290" cy="208" r="7" fill="#d4a017" stroke="#7a5c00" stroke-width="2"/>
   <text x="120" y="330" font-size="14" fill="#f2c94c">● u.FL: ANTENA</text>
   <text x="120" y="350" font-size="14" fill="#f2c94c">  obligatoria</text>
-  <text x="120" y="800" font-size="14" fill="#cfd8dc">Jumper amarillo</text>
-  <text x="120" y="820" font-size="14" fill="#cfd8dc">de la placa en 3,3 V</text>
+  <text x="120" y="760" font-size="14" fill="#cfd8dc">Jumper amarillo</text>
+  <text x="120" y="780" font-size="14" fill="#cfd8dc">de la placa en 3,3 V</text>
 
   <!-- pines del ESP32 -->
   <g font-size="17" font-weight="bold" fill="#ffffff" text-anchor="end">
@@ -44,7 +44,7 @@
     <path d="M387 340 H700 V430 H993" stroke="#ef6c00"/>
     <!-- GND bus -->
     <path d="M387 290 H900" stroke="#111"/>
-    <path d="M900 280 V855 H1160 V690" stroke="#111"/>
+    <path d="M900 280 V870 H1160 V690" stroke="#111"/>
     <path d="M900 280 H993" stroke="#111"/>
     <path d="M900 465 H993" stroke="#111"/>
     <path d="M1130 690 H1160" stroke="#111"/>
@@ -101,6 +101,32 @@
   <text x="1190" y="772" font-size="14" fill="#55645a">Al pisarse cierra a GND. Sin resistencia:</text>
   <text x="1190" y="790" font-size="14" fill="#55645a">el ESP32 usa su pull-up interna.</text>
 
+
+  <text x="365" y="791" font-size="17" font-weight="bold" fill="#ffffff" text-anchor="end">GPIO 16</text>
+  <circle cx="380" cy="785" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+  <path d="M387 785 H600" stroke="#b8860b" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M660 785 H900" stroke="#111" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <g stroke="#333" stroke-width="4" fill="none" stroke-linecap="round"><line x1="608" y1="773" x2="652" y2="773"/><line x1="630" y1="773" x2="630" y2="763"/></g>
+  <g fill="#fff" stroke="#333" stroke-width="3"><circle cx="608" cy="785" r="5"/><circle cx="652" cy="785" r="5"/></g>
+  <text x="680" y="777" font-size="14" font-weight="bold" fill="#b8860b">PULSADOR MODO</text>
+  <circle cx="900" cy="785" r="8" fill="#111"/>
+  <text x="365" y="821" font-size="17" font-weight="bold" fill="#ffffff" text-anchor="end">GPIO 17</text>
+  <circle cx="380" cy="815" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+  <path d="M387 815 H600" stroke="#1565c0" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M660 815 H900" stroke="#111" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <g stroke="#333" stroke-width="4" fill="none" stroke-linecap="round"><line x1="608" y1="803" x2="652" y2="803"/><line x1="630" y1="803" x2="630" y2="793"/></g>
+  <g fill="#fff" stroke="#333" stroke-width="3"><circle cx="608" cy="815" r="5"/><circle cx="652" cy="815" r="5"/></g>
+  <text x="680" y="807" font-size="14" font-weight="bold" fill="#1565c0">PULSADOR RIEGO</text>
+  <circle cx="900" cy="815" r="8" fill="#111"/>
+  <text x="365" y="851" font-size="17" font-weight="bold" fill="#ffffff" text-anchor="end">GPIO 33</text>
+  <circle cx="380" cy="845" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+  <path d="M387 845 H600" stroke="#2e7d32" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M660 845 H900" stroke="#111" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <g stroke="#333" stroke-width="4" fill="none" stroke-linecap="round"><line x1="608" y1="833" x2="652" y2="833"/><line x1="630" y1="833" x2="630" y2="823"/></g>
+  <g fill="#fff" stroke="#333" stroke-width="3"><circle cx="608" cy="845" r="5"/><circle cx="652" cy="845" r="5"/></g>
+  <text x="680" y="837" font-size="14" font-weight="bold" fill="#2e7d32">PULSADOR VENTEO</text>
+  <circle cx="900" cy="845" r="8" fill="#111"/>
+
   <!-- ================= NOTAS ================= -->
   <rect x="80" y="890" width="760" height="100" rx="10" fill="#f4f7f4" stroke="#cfd8d1" stroke-width="2"/>
   <text x="100" y="920" font-size="17" font-weight="bold" fill="#1b2a20">En config.h antes de cargar:</text>
@@ -108,7 +134,7 @@
   <text x="100" y="972" font-size="14" fill="#55645a">WiFi: desde el celular (red Vivero-nodo1). Botón BOOT 5 s = reabre el portal.</text>
   <rect x="860" y="890" width="660" height="100" rx="10" fill="#fff6e5" stroke="#f0d59a" stroke-width="2"/>
   <text x="880" y="920" font-size="17" font-weight="bold" fill="#7a5200">No usar (reservados):</text>
-  <text x="880" y="946" font-size="16" fill="#7a5200">GPIO 32 a 39 → sensores de humedad de suelo</text>
+  <text x="880" y="946" font-size="16" fill="#7a5200">GPIO 32, 34, 35, 36, 39 → humedad de suelo · 21, 22 → pantallita</text>
   <text x="880" y="970" font-size="16" fill="#7a5200">GPIO 5, 18, 19, 23 → LoRa (versión futura)</text>
 
   <!-- Leyenda GND -->

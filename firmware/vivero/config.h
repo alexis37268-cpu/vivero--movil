@@ -50,8 +50,16 @@
   #define PIN_RIEGO          D0
   #define PIN_FIN_ABIERTO    D6
   #define PIN_FIN_CERRADO    D7
-  // El boton FLASH del NodeMCU es el GPIO 0, igual que el BOOT del ESP32.
+  // Pulsadores del tablero (a GND, sin resistencias: pull-up interna)
+  #define PIN_BOTON_MODO     0     // boton FLASH de la placa: toque = modo, 5 s = portal
+  #define PIN_BOTON_RIEGO    D4    // ojo: no arrancar la placa con este apretado
+  #define PIN_BOTON_VENTEO   3     // RX (el monitor serie igual funciona)
 #else
+  // Pulsadores del tablero (a GND, sin resistencias: pull-up interna)
+  #define PIN_BOTON_MODO     16
+  #define PIN_BOTON_RIEGO    17
+  #define PIN_BOTON_VENTEO   33
+  // 21 y 22 quedan libres para la pantallita (I2C)
   #define PIN_DHT            4
   #define PIN_VENTEO_ABRIR   25
   #define PIN_VENTEO_CERRAR  26
@@ -59,7 +67,7 @@
   #define PIN_FIN_ABIERTO    13
   #define PIN_FIN_CERRADO    14
   // Pines reservados para el futuro en el ESP32 (NO usar):
-  //   32-39 -> sensores de humedad de suelo (ADC1, andan con WiFi)
+  //   32, 34, 35, 36, 39 -> sensores de humedad de suelo (ADC1, andan con WiFi)
   //   5, 18, 19, 23 -> modulo LoRa (SPI)
 #endif
 
@@ -84,6 +92,8 @@
 // En el ESP8266, D0 no tiene pull-up: por eso ahi va un rele y no un final de carrera.
 
 // ---------- Tiempos ----------
+#define ANTIRREBOTE_MS           50UL      // pulsadores y finales de carrera: estable 50 ms = cambio real
+#define TIEMPO_MUERTO_MS         300UL     // motor parado antes de invertir el giro
 #define INTERVALO_LECTURA_MS     5000UL    // cada cuanto lee el sensor
 #define INTERVALO_PUBLICACION_MS 30000UL   // cada cuanto publica (cuida la cuota gratis)
 #define REINTENTO_CONEXION_MS    10000UL   // espera entre intentos de conectar al broker

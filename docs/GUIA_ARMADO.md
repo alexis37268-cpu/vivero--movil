@@ -38,6 +38,9 @@ Se arma en **dos etapas**: primero con LEDs/relés sin carga (no se rompe nada s
 | Módulo relés VCC / GND | 5V / GND | |
 | Final de carrera **ABIERTO** | **GPIO 13** ↔ GND | Contacto NA: cierra a GND cuando el venteo está abierto |
 | Final de carrera **CERRADO** | **GPIO 14** ↔ GND | Ídem cuando está cerrado |
+| Pulsador **MODO** | **GPIO 16** ↔ GND | Pulsador NA, sin resistencia |
+| Pulsador **RIEGO** | **GPIO 17** ↔ GND | Ídem |
+| Pulsador **VENTEO** | **GPIO 33** ↔ GND | Ídem |
 
 **No usar** (quedan reservados): GPIO 32 a 39 (futuros sensores de humedad de suelo) y GPIO 5, 18, 19, 23 (futuro LoRa).
 
@@ -55,10 +58,13 @@ Conexiones:
 | DHT11 out | D5 |
 | Relé ABRIR / CERRAR / RIEGO | D1 / D2 / D0 |
 | FIN ABIERTO / FIN CERRADO | D6 / D7 |
+| Pulsador RIEGO / VENTEO | D4 / RX |
+| Pulsador MODO | el botón FLASH de la placa |
 | Relés VCC | VIN (5 V por USB) |
 
 No usar D3, D4 ni D8 (con algo conectado, a veces la placa no arranca).
-El botón para reabrir el portal es el **FLASH** de la placa.
+El botón **FLASH** hace dos cosas: **toque corto = cambia el modo**, **mantenerlo 5 s = abre el portal**.
+**No arrancar la placa con un pulsador apretado** (D4 y FLASH deciden el arranque).
 
 Limitaciones (por eso el equipo final va con ESP32): una sola entrada analógica, sin pines para LoRa y poca memoria para TLS.
 
@@ -125,6 +131,12 @@ Usar **MQTTX** conectado al broker y suscripto a `vivero/#`.
 7. **Automático**: `auto` en `cmd/modo`. Calentar el DHT por encima de 28 °C → abre. Bajar de 24 °C → cierra.
 8. **Corte de luz**: desenchufar y enchufar → tiene que volver en el mismo modo y con los mismos setpoints.
 9. **Sin internet**: apagar el router → la lógica automática sigue funcionando (mirar los relés), y al volver se reconecta solo.
+10. **Tablero (pulsadores)**, con o sin internet:
+    - **MODO**: cada toque alterna automático / manual (se ve en la app y en el monitor serie: `[MODO] manual (pulsador)`).
+    - **RIEGO** (en manual): un toque prende, otro apaga.
+    - **VENTEO** (en manual): cerrado → abre; abierto → cierra; **moviéndose → para**.
+    - En automático, RIEGO y VENTEO no hacen nada y llega una alarma "pulsador ignorado".
+    - Tocar rápido varias veces: cada toque tiene que contar **una sola vez** (antirrebote por software de 50 ms, sin `delay`).
 
 Si todo esto anda, recién ahí etapa 2.
 

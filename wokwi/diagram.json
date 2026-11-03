@@ -3,43 +3,281 @@
   "author": "Alexis Monasterio",
   "editor": "wokwi",
   "parts": [
-    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
-    { "type": "wokwi-dht22", "id": "dht1", "top": -130, "left": 140, "attrs": { "temperature": "22", "humidity": "55" } },
-
-    { "type": "wokwi-resistor", "id": "r1", "top": 60, "left": -170, "rotate": 0, "attrs": { "value": "220" } },
-    { "type": "wokwi-led", "id": "ledAbrir", "top": 10, "left": -100, "attrs": { "color": "green", "label": "ABRIR" } },
-    { "type": "wokwi-resistor", "id": "r2", "top": 110, "left": -170, "rotate": 0, "attrs": { "value": "220" } },
-    { "type": "wokwi-led", "id": "ledCerrar", "top": 60, "left": -100, "attrs": { "color": "red", "label": "CERRAR" } },
-    { "type": "wokwi-resistor", "id": "r3", "top": 160, "left": -170, "rotate": 0, "attrs": { "value": "220" } },
-    { "type": "wokwi-led", "id": "ledRiego", "top": 110, "left": -100, "attrs": { "color": "blue", "label": "RIEGO" } },
-
-    { "type": "wokwi-slide-switch", "id": "finAbierto", "top": 230, "left": -120, "attrs": { "label": "FIN ABIERTO", "value": "1", "bounce": "0" } },
-    { "type": "wokwi-slide-switch", "id": "finCerrado", "top": 290, "left": -120, "attrs": { "label": "FIN CERRADO", "value": "", "bounce": "0" } }
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht1",
+      "top": -130,
+      "left": 140,
+      "attrs": {
+        "temperature": "22",
+        "humidity": "55"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 60,
+      "left": -170,
+      "rotate": 0,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledAbrir",
+      "top": 10,
+      "left": -100,
+      "attrs": {
+        "color": "green",
+        "label": "ABRIR"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 110,
+      "left": -170,
+      "rotate": 0,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledCerrar",
+      "top": 60,
+      "left": -100,
+      "attrs": {
+        "color": "red",
+        "label": "CERRAR"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r3",
+      "top": 160,
+      "left": -170,
+      "rotate": 0,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledRiego",
+      "top": 110,
+      "left": -100,
+      "attrs": {
+        "color": "blue",
+        "label": "RIEGO"
+      }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "finAbierto",
+      "top": 230,
+      "left": -120,
+      "attrs": {
+        "label": "FIN ABIERTO",
+        "value": "1",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "finCerrado",
+      "top": 290,
+      "left": -120,
+      "attrs": {
+        "label": "FIN CERRADO",
+        "value": "",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "bModo",
+      "top": 180,
+      "left": 200,
+      "attrs": {
+        "color": "yellow",
+        "label": "MODO"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "bRiego",
+      "top": 240,
+      "left": 200,
+      "attrs": {
+        "color": "blue",
+        "label": "RIEGO"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "bVenteo",
+      "top": 300,
+      "left": 200,
+      "attrs": {
+        "color": "green",
+        "label": "VENTEO"
+      }
+    }
   ],
   "connections": [
-    [ "esp:TX", "$serialMonitor:RX", "", [] ],
-    [ "esp:RX", "$serialMonitor:TX", "", [] ],
-
-    [ "dht1:VCC", "esp:3V3", "red", [] ],
-    [ "dht1:GND", "esp:GND.2", "black", [] ],
-    [ "dht1:SDA", "esp:4", "green", [] ],
-
-    [ "esp:25", "r1:1", "green", [] ],
-    [ "r1:2", "ledAbrir:A", "green", [] ],
-    [ "ledAbrir:C", "esp:GND.1", "black", [] ],
-
-    [ "esp:26", "r2:1", "red", [] ],
-    [ "r2:2", "ledCerrar:A", "red", [] ],
-    [ "ledCerrar:C", "esp:GND.1", "black", [] ],
-
-    [ "esp:27", "r3:1", "blue", [] ],
-    [ "r3:2", "ledRiego:A", "blue", [] ],
-    [ "ledRiego:C", "esp:GND.1", "black", [] ],
-
-    [ "finAbierto:2", "esp:13", "orange", [] ],
-    [ "finAbierto:1", "esp:GND.1", "black", [] ],
-    [ "finCerrado:2", "esp:14", "violet", [] ],
-    [ "finCerrado:1", "esp:GND.1", "black", [] ]
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "dht1:VCC",
+      "esp:3V3",
+      "red",
+      []
+    ],
+    [
+      "dht1:GND",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "dht1:SDA",
+      "esp:4",
+      "green",
+      []
+    ],
+    [
+      "esp:25",
+      "r1:1",
+      "green",
+      []
+    ],
+    [
+      "r1:2",
+      "ledAbrir:A",
+      "green",
+      []
+    ],
+    [
+      "ledAbrir:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:26",
+      "r2:1",
+      "red",
+      []
+    ],
+    [
+      "r2:2",
+      "ledCerrar:A",
+      "red",
+      []
+    ],
+    [
+      "ledCerrar:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:27",
+      "r3:1",
+      "blue",
+      []
+    ],
+    [
+      "r3:2",
+      "ledRiego:A",
+      "blue",
+      []
+    ],
+    [
+      "ledRiego:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "finAbierto:2",
+      "esp:13",
+      "orange",
+      []
+    ],
+    [
+      "finAbierto:1",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "finCerrado:2",
+      "esp:14",
+      "violet",
+      []
+    ],
+    [
+      "finCerrado:1",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "bModo:1.l",
+      "esp:16",
+      "gold",
+      []
+    ],
+    [
+      "bModo:2.l",
+      "esp:GND.3",
+      "black",
+      []
+    ],
+    [
+      "bRiego:1.l",
+      "esp:17",
+      "blue",
+      []
+    ],
+    [
+      "bRiego:2.l",
+      "esp:GND.3",
+      "black",
+      []
+    ],
+    [
+      "bVenteo:1.l",
+      "esp:33",
+      "green",
+      []
+    ],
+    [
+      "bVenteo:2.l",
+      "esp:GND.3",
+      "black",
+      []
+    ]
   ],
   "dependencies": {}
 }

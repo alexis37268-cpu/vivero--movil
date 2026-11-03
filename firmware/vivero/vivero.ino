@@ -171,15 +171,67 @@ void escribirRele(uint8_t pin, bool encendido) {
 }
 
 // -------------------------------------------------------------
+//  Entradas con antirrebote (sin delay)
+//
+//  Un contacto mecanico "rebota": al cerrarse abre y cierra varias
+//  veces en pocos milisegundos. Esta clase solo acepta un cambio si
+//  la entrada quedo ESTABLE durante ANTIRREBOTE_MS. Usa millis(),
+//  asi que nunca frena el loop.
+// -------------------------------------------------------------
+class Entrada {
+  uint8_t pin;
+  bool crudo, estable;           // lo que lee el pin ahora / lo ultimo aceptado
+  unsigned long cambio = 0;      // cuando cambio por ultima vez lo crudo
+public:
+  explicit Entrada(uint8_t p) : pin(p), crudo(HIGH), estable(HIGH) {}
+  void begin() {
+    pinMode(pin, INPUT_PULLUP);
+    crudo = estable = digitalRead(pin);
+    cambio = millis();
+  }
+  // Devuelve true solo en el momento en que se acepta un cambio
+  bool actualizar() {
+    bool r = digitalRead(pin);
+    if (r != crudo) { crudo = r; cambio = millis(); }        // rebote: reinicia la cuenta
+    if (estable != crudo && millis() - cambio >= ANTIRREBOTE_MS) { estable = crudo; return true; }
+    return false;
+  }
+  bool activo() const { return estable == LOW; }              // contacto cerrado a GND
+};
+
+Entrada eFinAbierto(PIN_FIN_ABIERTO);
+Entrada eFinCerrado(PIN_FIN_CERRADO);
+Entrada bModo(PIN_BOTON_MODO);
+Entrada bRiego(PIN_BOTON_RIEGO);
+Entrada bVenteo(PIN_BOTON_VENTEO);
+#if !MODO_WOKWI && (PIN_BOTON_PORTAL != PIN_BOTON_MODO)
+  Entrada bPortal(PIN_BOTON_PORTAL);
+#endif
+
+// -------------------------------------------------------------
 //  Venteo
 // -------------------------------------------------------------
-bool finAbierto() { return digitalRead(PIN_FIN_ABIERTO) == LOW; }
-bool finCerrado() { return digitalRead(PIN_FIN_CERRADO) == LOW; }
+bool finAbierto() { return eFinAbierto.activo(); }
+bool finCerrado() { return eFinCerrado.activo(); }
 bool motorMoviendo() { return venteo == V_ABRIENDO || venteo == V_CERRANDO; }
+
+// Al invertir el giro (de abrir a cerrar o al reves) el motor queda
+// parado TIEMPO_MUERTO_MS antes de arrancar para el otro lado.
+// En vez de delay(), se anota que rele hay que prender y cuando.
+int           arranquePin = -1;
+unsigned long arranqueDesde = 0;
 
 void motorParar() {
   escribirRele(PIN_VENTEO_ABRIR,  false);
   escribirRele(PIN_VENTEO_CERRAR, false);
+  arranquePin = -1;                      // cancela un arranque pendiente
+}
+
+void motorArrancar(uint8_t pin, bool invertir) {
+  motorParar();
+  if (invertir) { arranquePin = pin; arranqueDesde = millis(); }   // lo prende venteoTick
+  else escribirRele(pin, true);
+  motorDesde = millis();
 }
 
 void setVenteo(EstadoVenteo e) {
@@ -198,22 +250,14 @@ void venteoError(const String& motivo) {
 void venteoAbrir() {
   if (finAbierto()) { motorParar(); setVenteo(V_ABIERTO); return; }
   if (venteo == V_ABRIENDO) return;
-  bool invertir = (venteo == V_CERRANDO);
-  motorParar();
-  if (invertir) delay(300);              // tiempo muerto antes de invertir el giro
-  escribirRele(PIN_VENTEO_ABRIR, true);
-  motorDesde = millis();
+  motorArrancar(PIN_VENTEO_ABRIR, venteo == V_CERRANDO);
   setVenteo(V_ABRIENDO);
 }
 
 void venteoCerrar() {
   if (finCerrado()) { motorParar(); setVenteo(V_CERRADO); return; }
   if (venteo == V_CERRANDO) return;
-  bool invertir = (venteo == V_ABRIENDO);
-  motorParar();
-  if (invertir) delay(300);
-  escribirRele(PIN_VENTEO_CERRAR, true);
-  motorDesde = millis();
+  motorArrancar(PIN_VENTEO_CERRAR, venteo == V_ABRIENDO);
   setVenteo(V_CERRANDO);
 }
 
@@ -226,6 +270,15 @@ void venteoParar() {
 
 // Se llama en cada vuelta del loop: vigila finales de carrera y tiempos
 void venteoTick() {
+  eFinAbierto.actualizar();
+  eFinCerrado.actualizar();
+
+  // Arranque pendiente despues del tiempo muerto
+  if (arranquePin >= 0 && millis() - arranqueDesde >= TIEMPO_MUERTO_MS) {
+    escribirRele((uint8_t)arranquePin, true);
+    arranquePin = -1;
+  }
+
   if (finAbierto() && finCerrado()) {    // imposible fisicamente: cable o switch mal
     venteoError("los dos finales de carrera activos");
     return;
@@ -506,7 +559,9 @@ void portalSetup() {
   wm.setConnectTimeout(10);                  // al probar un WiFi nuevo, espera como mucho 10 s
   wm.setShowInfoUpdate(false);               // sin boton de actualizar firmware desde el portal
 
-  pinMode(PIN_BOTON_PORTAL, INPUT_PULLUP);
+#if PIN_BOTON_PORTAL != PIN_BOTON_MODO
+  bPortal.begin();
+#endif
 
   // Prueba el WiFi guardado; si no hay o no conecta, abre el portal (y sigue de largo)
   if (wm.autoConnect(PORTAL_NOMBRE, PORTAL_CLAVE)) Serial.println("[WIFI] conectado con la red guardada");
@@ -516,12 +571,16 @@ void portalSetup() {
 void portalTick() {
   wm.process();               // atiende la pagina del portal si esta abierta
 
-  // Boton BOOT apretado 5 s -> abrir portal (para cambiar de WiFi o de broker)
+#if PIN_BOTON_PORTAL != PIN_BOTON_MODO
+  // ESP32: boton BOOT apretado 5 s -> abrir portal (para cambiar de WiFi o de broker)
   static unsigned long apretadoDesde = 0;
-  if (digitalRead(PIN_BOTON_PORTAL) == LOW) {
-    if (apretadoDesde == 0) apretadoDesde = millis();
-    else if (millis() - apretadoDesde > BOTON_PORTAL_MS) { portalAbrir("boton BOOT"); apretadoDesde = 0; }
-  } else apretadoDesde = 0;
+  static bool disparado = false;
+  if (bPortal.actualizar()) { apretadoDesde = millis(); disparado = false; }
+  if (bPortal.activo() && !disparado && millis() - apretadoDesde > BOTON_PORTAL_MS) {
+    disparado = true; portalAbrir("boton BOOT");
+  }
+#endif
+  // (En el 8266 el boton FLASH es MODO y portal a la vez: lo maneja botonesTick)
 
   // Mucho tiempo sin WiFi (cambiaron el router, la clave...) -> abrir portal solo
   if (WiFi.status() == WL_CONNECTED) sinWifiDesde = 0;
@@ -531,11 +590,76 @@ void portalTick() {
 #endif
 
 // -------------------------------------------------------------
+//  Pulsadores del tablero (funcionan sin celular y sin internet)
+//    MODO:   cada toque alterna automatico / manual
+//    RIEGO:  (solo en manual) prende / apaga
+//    VENTEO: (solo en manual) cerrado -> abre, abierto -> cierra,
+//            moviendose -> PARA
+//  En automatico RIEGO y VENTEO no hacen nada (y lo avisa), para que
+//  nadie pelee con la logica automatica sin darse cuenta.
+// -------------------------------------------------------------
+void cambiarModo(const char* origen) {
+  modoAuto = !modoAuto;
+  guardarConfig();
+  hayCambios = true;
+  Serial.printf("[MODO] %s (%s)\n", modoAuto ? "automatico" : "manual", origen);
+  if (modoAuto) controlAuto();
+}
+
+void pulsoRiego() {
+  if (modoAuto) { alarma("pulsador RIEGO ignorado: esta en automatico"); return; }
+  riegoSet(!riegoOn, "pulsador");
+}
+
+void pulsoVenteo() {
+  if (modoAuto) { alarma("pulsador VENTEO ignorado: esta en automatico"); return; }
+  if (motorMoviendo())           { venteoParar(); Serial.println("[VENTEO] parado con pulsador"); }
+  else if (venteo == V_ABIERTO)  venteoCerrar();
+  else if (venteo == V_CERRADO)  venteoAbrir();
+  else                           venteoCerrar();   // desconocido o error: lo mas seguro es cerrar
+}
+
+void botonesSetup() {
+  bModo.begin();
+  bRiego.begin();
+  bVenteo.begin();
+}
+
+void botonesTick() {
+  // Se actua al APRETAR (flanco a GND), una sola vez por toque
+  if (bRiego.actualizar()  && bRiego.activo())  pulsoRiego();
+  if (bVenteo.actualizar() && bVenteo.activo()) pulsoVenteo();
+
+#if !MODO_WOKWI && (PIN_BOTON_PORTAL == PIN_BOTON_MODO)
+  // 8266: el boton FLASH es MODO (toque corto) y PORTAL (mantener 5 s).
+  // Por eso el modo cambia al SOLTAR, y solo si fue un toque corto.
+  static unsigned long desde = 0;
+  static bool largo = false;
+  if (bModo.actualizar()) {
+    if (bModo.activo()) { desde = millis(); largo = false; }
+    else if (!largo && millis() - desde < 1000) cambiarModo("pulsador");
+  }
+  if (bModo.activo() && !largo && millis() - desde > BOTON_PORTAL_MS) {
+    largo = true;
+    portalAbrir("boton FLASH");
+  }
+#else
+  if (bModo.actualizar() && bModo.activo()) cambiarModo("pulsador");
+#endif
+}
+
+// -------------------------------------------------------------
 //  Setup y loop
 // -------------------------------------------------------------
 void setup() {
+#if defined(ESP8266)
+  // En el 8266 el pin RX se usa para el pulsador VENTEO: el puerto serie
+  // queda solo para transmitir (el monitor serie sigue mostrando todo).
+  Serial.begin(115200, SERIAL_8N1, SERIAL_TX_ONLY);
+#else
   Serial.begin(115200);
-  delay(200);
+#endif
+  delay(200);   // unico delay: al arrancar, antes de que haya algo que controlar
   Serial.println("\n=== Controlador de vivero " NODO_ID " ===");
 
   // 1) Lo primero: todas las salidas APAGADAS
@@ -545,8 +669,9 @@ void setup() {
   motorParar();
   escribirRele(PIN_RIEGO, false);
 
-  pinMode(PIN_FIN_ABIERTO, INPUT_PULLUP);
-  pinMode(PIN_FIN_CERRADO, INPUT_PULLUP);
+  eFinAbierto.begin();
+  eFinCerrado.begin();
+  botonesSetup();
 
   // 2) Config guardada (o valores por defecto la primera vez)
 #if defined(ESP8266)
@@ -596,6 +721,7 @@ void loop() {
 
   venteoTick();
   riegoTick();
+  botonesTick();
 
   wifiTick();
 #if !MODO_WOKWI
