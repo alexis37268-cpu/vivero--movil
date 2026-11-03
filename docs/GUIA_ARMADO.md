@@ -43,12 +43,34 @@ Se arma en **dos etapas**: primero con LEDs/relés sin carga (no se rompe nada s
 
 ---
 
+## 2 bis. Si probás con el NodeMCU ESP8266
+
+El mismo código anda en el ESP8266: los pines se eligen solos según la placa.
+Conexiones:
+
+![Conexiones con NodeMCU ESP8266](conexiones-esp8266.png)
+
+| Función | NodeMCU |
+|---|---|
+| DHT11 out | D5 |
+| Relé ABRIR / CERRAR / RIEGO | D1 / D2 / D0 |
+| FIN ABIERTO / FIN CERRADO | D6 / D7 |
+| Relés VCC | VIN (5 V por USB) |
+
+No usar D3, D4 ni D8 (con algo conectado, a veces la placa no arranca).
+El botón para reabrir el portal es el **FLASH** de la placa.
+
+Limitaciones (por eso el equipo final va con ESP32): una sola entrada analógica, sin pines para LoRa y poca memoria para TLS.
+
+---
+
 ## 3. Cargar el programa
 
 1. Instalar **Arduino IDE 2**.
 2. *Archivo → Preferencias → URLs adicionales*:
    `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
-3. *Herramientas → Placa → Gestor de placas*: instalar **esp32** (de Espressif).
+   Para el ESP8266 agregar también (separada por coma): `https://arduino.esp8266.com/stable/package_esp8266com_index.json`
+3. *Herramientas → Placa → Gestor de placas*: instalar **esp32** (de Espressif) y/o **esp8266**.
 4. *Gestor de librerías*: instalar **PubSubClient** (Nick O'Leary), **DHT sensor library** (Adafruit, acepta instalar Adafruit Unified Sensor) y **WiFiManager** (tzapu).
 5. Abrir la carpeta `firmware/vivero/`.
 6. Copiar `secrets.example.h` como **`secrets.h`** y completar:
@@ -58,7 +80,8 @@ Se arma en **dos etapas**: primero con LEDs/relés sin carga (no se rompe nada s
 7. En `config.h` cambiar **una sola línea**: `#define MODO_WOKWI 0`
    (eso solo pone DHT11, keepalive 30, relés activos en bajo y activa el portal de WiFi).
    Si los relés quedan **al revés** (prendidos cuando deberían estar apagados), en `config.h` cambiar el `RELE_ACTIVO_ALTO false` por `true`.
-8. Placa: **ESP32 Dev Module**. Puerto: el COM que aparezca. Subir.
+8. Placa: **ESP32 Dev Module** (o **NodeMCU 1.0 (ESP-12E Module)** si es el 8266). Puerto: el COM que aparezca. Subir.
+   Si la PC no ve la placa: falta el driver USB (**CH340** o **CP2102**, según el chip que tenga al lado del USB).
 9. Abrir el **Monitor serie a 115200**. La primera vez tiene que verse:
    ```
    === Controlador de vivero nodo1 ===

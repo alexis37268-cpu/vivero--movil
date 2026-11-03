@@ -40,18 +40,37 @@
 #define PIN_BOTON_PORTAL   0                   // boton BOOT de la placa
 #define BOTON_PORTAL_MS    5000                // mantenerlo 5 s abre el portal
 
+// ---------- Pines ----------
+// Se eligen solos segun la placa. En el NodeMCU (ESP8266) se evitan
+// D3, D4 y D8, que deciden el arranque: con algo conectado ahi a veces no bootea.
+#if defined(ESP8266)
+  #define PIN_DHT            D5
+  #define PIN_VENTEO_ABRIR   D1
+  #define PIN_VENTEO_CERRAR  D2
+  #define PIN_RIEGO          D0
+  #define PIN_FIN_ABIERTO    D6
+  #define PIN_FIN_CERRADO    D7
+  // El boton FLASH del NodeMCU es el GPIO 0, igual que el BOOT del ESP32.
+#else
+  #define PIN_DHT            4
+  #define PIN_VENTEO_ABRIR   25
+  #define PIN_VENTEO_CERRAR  26
+  #define PIN_RIEGO          27
+  #define PIN_FIN_ABIERTO    13
+  #define PIN_FIN_CERRADO    14
+  // Pines reservados para el futuro en el ESP32 (NO usar):
+  //   32-39 -> sensores de humedad de suelo (ADC1, andan con WiFi)
+  //   5, 18, 19, 23 -> modulo LoRa (SPI)
+#endif
+
 // ---------- Sensor de temperatura y humedad ----------
-#define PIN_DHT     4
 #if MODO_WOKWI
   #define DHT_TIPO  DHT22                      // Wokwi solo trae DHT22
 #else
   #define DHT_TIPO  DHT11                      // el de Matias
 #endif
 
-// ---------- Salidas (reles) ----------
-#define PIN_VENTEO_ABRIR   25
-#define PIN_VENTEO_CERRAR  26
-#define PIN_RIEGO          27
+// ---------- Reles ----------
 // Los LEDs de Wokwi se prenden con HIGH -> true.
 // Los modulos de rele chinos comunes se activan con LOW -> false.
 // Si en el equipo real los reles quedan al reves, cambiar el false por true.
@@ -61,14 +80,8 @@
   #define RELE_ACTIVO_ALTO false
 #endif
 
-// ---------- Entradas (finales de carrera del venteo) ----------
-// Contacto a GND cuando esta pisado (se usa pull-up interno).
-#define PIN_FIN_ABIERTO    13
-#define PIN_FIN_CERRADO    14
-
-// Pines reservados para el futuro (NO usar):
-//   32-39 -> sensores de humedad de suelo (ADC1, andan con WiFi)
-//   5, 18, 19, 23 -> modulo LoRa (SPI)
+// Finales de carrera: contacto a GND cuando esta pisado (se usa pull-up interno).
+// En el ESP8266, D0 no tiene pull-up: por eso ahi va un rele y no un final de carrera.
 
 // ---------- Tiempos ----------
 #define INTERVALO_LECTURA_MS     5000UL    // cada cuanto lee el sensor

@@ -5,10 +5,20 @@
 //  Idea central: TODA la logica corre en el ESP32. Internet y la
 //  app son un extra: si se cae la conexion, el vivero sigue solo.
 // =============================================================
-#include <WiFi.h>
-#include <WiFiClientSecure.h>   // TLS
+//
+//  Anda en ESP32 y en ESP8266: el compilador sabe para cual es
+//  (segun la placa elegida en el Arduino IDE) y usa lo que corresponde.
+// =============================================================
+#if defined(ESP8266)
+  #include <ESP8266WiFi.h>
+  #include <WiFiClientSecure.h> // TLS (BearSSL)
+  #include "prefs8266.h"        // reemplazo de Preferences
+#else
+  #include <WiFi.h>
+  #include <WiFiClientSecure.h> // TLS
+  #include <Preferences.h>      // memoria no volatil (sobrevive a cortes de luz)
+#endif
 #include <PubSubClient.h>       // cliente MQTT
-#include <Preferences.h>        // memoria no volatil (sobrevive a cortes de luz)
 #include <DHT.h>
 #include <time.h>
 
@@ -45,7 +55,14 @@ struct Config {
 DHT              dht(PIN_DHT, DHT_TIPO);
 WiFiClientSecure red;          // el "cable" cifrado
 PubSubClient     mqtt(red);    // MQTT viaja por ese cable
-Preferences      prefs;
+#if defined(ESP8266)
+  Prefs8266      prefs;
+  BearSSL::X509List certCA(CA_CERT);   // en el 8266 el certificado va en esta lista
+  #define ID_CHIP  ESP.getChipId()
+#else
+  Preferences    prefs;
+  #define ID_CHIP  ((uint32_t)ESP.getEfuseMac())
+#endif
 
 Config       cfg;
 bool         modoAuto = true;
@@ -387,9 +404,14 @@ void mqttTick() {
   // no lo intentamos mientras el motor se mueve.
   if (motorMoviendo()) return;
   if (ultIntentoMqtt != 0 && millis() - ultIntentoMqtt < REINTENTO_CONEXION_MS) return;
+#if defined(ESP8266)
+  // El 8266 revisa la fecha de vencimiento del certificado: sin hora correcta
+  // (la saca de internet al conectar el WiFi) rechaza el broker. Esperamos la hora.
+  if (time(nullptr) < 1700000000) return;
+#endif
   ultIntentoMqtt = millis();
 
-  String id = String("vivero-" NODO_ID "-") + String((uint32_t)ESP.getEfuseMac(), HEX);
+  String id = String("vivero-" NODO_ID "-") + String(ID_CHIP, HEX);
   Serial.print("[MQTT] conectando al broker... ");
 
   // Ultimo deseo (LWT): si el ESP32 se cae sin avisar, el broker
@@ -527,6 +549,9 @@ void setup() {
   pinMode(PIN_FIN_CERRADO, INPUT_PULLUP);
 
   // 2) Config guardada (o valores por defecto la primera vez)
+#if defined(ESP8266)
+  if (!Prefs8266::iniciar()) Serial.println("[CONFIG] no se pudo montar la flash: uso valores por defecto");
+#endif
   cargarConfig();
   Serial.printf("[CONFIG] abrir %.1f / cerrar %.1f °C, riego %.0f-%.0f %%, modo %s\n",
                 cfg.tempAbrir, cfg.tempCerrar, cfg.humRiegoOn, cfg.humRiegoOff,
@@ -546,8 +571,13 @@ void setup() {
 
   // 4) MQTT con TLS
   caOk = String(CA_CERT).indexOf("PEGAR_ACA") < 0;   // ¿pegaron el certificado?
+#if defined(ESP8266)
+  if (caOk) red.setTrustAnchors(&certCA);
+  red.setBufferSizes(16384, 1024);   // TLS en el 8266: lo justo para no quedarse sin memoria
+#else
   if (caOk) red.setCACert(CA_CERT);
-  else Serial.println("[MQTT] FALTA el certificado en ca_cert.h: no se conecta al broker");
+#endif
+  if (!caOk) Serial.println("[MQTT] FALTA el certificado en ca_cert.h: no se conecta al broker");
   mqtt.setServer(mqttHost, MQTT_PORT);
   mqtt.setCallback(alRecibir);
   mqtt.setBufferSize(512);

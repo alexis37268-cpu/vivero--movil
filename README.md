@@ -12,7 +12,7 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 ## Estructura
 | Carpeta | Qué hay |
 |---|---|
-| `firmware/vivero/` | Código del ESP32 (`vivero.ino`, `config.h`, `ca_cert.h`, `secrets.example.h`) |
+| `firmware/vivero/` | Código para ESP32 y ESP8266 (`vivero.ino`, `config.h`, `ca_cert.h`, `secrets.example.h`, `prefs8266.h`) |
 | `wokwi/` | Circuito para el simulador (`diagram.json`, `libraries.txt`) |
 | `docs/GUIA_ARMADO.md` | Guía de armado para el equipo real |
 
