@@ -16,6 +16,7 @@
 // Cada controlador tiene su ID. Si manana hay otro vivero: "nodo2".
 #define NODO_ID     "nodo1"
 #define TOPIC_BASE  "vivero/" NODO_ID      // => vivero/nodo1/...
+#define NODO_NOMBRE "Vivero"                // nombre que se ve en la app
 
 // ---------- Broker MQTT (EMQX Serverless) ----------
 // Valor por defecto: en el equipo real se puede cambiar desde el portal de WiFi.

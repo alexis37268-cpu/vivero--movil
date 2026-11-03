@@ -63,6 +63,12 @@
   nav button svg{width:22px;height:22px}
   nav button.on{color:var(--verde);background:var(--verde-claro)}
   .vista{display:none}.vista.on{display:block}
+  .equipos{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
+  .equipos::-webkit-scrollbar{display:none}
+  .equipo{flex:none;display:inline-flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;font-size:14px;background:rgba(255,255,255,.16);color:var(--sobre-bg)}
+  .equipo i{width:8px;height:8px;border-radius:50%;background:#9aa;display:inline-block}
+  .equipo i.ok{background:#7ee08f}.equipo i.mal{background:#ff8a7a}
+  .equipo.on{background:var(--card);color:var(--ink)}
   .badge{background:var(--rojo);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;margin-left:4px}
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
@@ -79,6 +85,7 @@
 
   <!-- ============ INICIO ============ -->
   <section id="v-inicio" class="vista on">
+    <div class="equipos" id="equipos" role="tablist" aria-label="Equipo"></div>
     <div class="grande">
       <div class="medida"><small>Temperatura</small><div class="v" id="temp">--<span>°C</span></div></div>
       <div class="medida"><small>Humedad</small><div class="v" id="hum">--<span>%</span></div></div>
@@ -124,7 +131,7 @@
         <div><label for="temp_abrir">Abre arriba de (°C)</label><input id="temp_abrir" type="number" step="0.5" inputmode="decimal"></div>
         <div><label for="temp_cerrar">Cierra abajo de (°C)</label><input id="temp_cerrar" type="number" step="0.5" inputmode="decimal"></div>
       </div>
-      <label for="motor_max_s">Tiempo máximo del motor (s)</label>
+      <label for="motor_max_s" id="lbl-motor">Tiempo máximo del motor (s)</label>
       <input id="motor_max_s" type="number" step="1" inputmode="numeric">
 
       <h2 style="margin-top:18px">Riego</h2>
@@ -247,7 +254,8 @@
     cliente.on('connect', () => {
       pill('ok', 'En línea');
       $('#c-detalle').textContent = 'Conectado a ' + cfg.host + ' como ' + cfg.user + '.';
-      cliente.subscribe([base() + 'estado', base() + 'online', base() + 'config', base() + 'alarma'], { qos: 1 });
+      cliente.subscribe(['vivero/+/online', 'vivero/+/nombre'], { qos: 1 });   // para descubrir los equipos
+      suscribirNodo();
       ordenar('estado', '1');  // pide el estado al instante
     });
     cliente.on('reconnect', () => pill('aviso', 'Reconectando…'));
@@ -272,10 +280,59 @@
     return true;
   }
 
+  // ---------- Equipos (vivero = nodo1, hibernaculos = nodo2, nodo3...) ----------
+  const nodos = {};
+  const nombreNodo = (id) => (nodos[id] && nodos[id].nombre) || (id === 'nodo1' ? 'Vivero' : id);
+  function suscribirNodo(){
+    cliente.subscribe([base() + 'estado', base() + 'config', base() + 'alarma'], { qos: 1 });
+    ordenar('estado', '1');
+  }
+  function cambiarNodo(id){
+    if (id === cfg.nodo) return;
+    if (cliente && cliente.connected) cliente.unsubscribe([base() + 'estado', base() + 'config', base() + 'alarma']);
+    cfg.nodo = id; guardar('dm.conexion', cfg); $('#c-nodo').value = id;
+    estado = null; cfgEquipo = null; ultimoEstado = 0;
+    online = nodos[id] ? nodos[id].online : null;
+    $('#actualizado').textContent = 'Esperando datos de ' + nombreNodo(id) + '…';
+    ['temp','hum'].forEach(k => $('#' + k).firstChild.nodeValue = '--');
+    ['venteo','riego','sensor'].forEach(k => poner(k, '—'));
+    if (cliente && cliente.connected) suscribirNodo();
+    pintarEquipos(); pintar();
+  }
+  function pintarEquipos(){
+    const c = $('#equipos');
+    const ids = Object.keys(nodos);
+    if (!ids.includes(cfg.nodo)) ids.push(cfg.nodo);
+    ids.sort((a, b) => (parseInt(a.replace(/\D/g, '')) || 0) - (parseInt(b.replace(/\D/g, '')) || 0));
+    c.innerHTML = '';
+    ids.forEach(id => {
+      const b = document.createElement('button');
+      b.className = 'equipo' + (id === cfg.nodo ? ' on' : '');
+      b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', id === cfg.nodo);
+      const dot = document.createElement('i');
+      const on = nodos[id] && nodos[id].online;
+      dot.className = on === true ? 'ok' : on === false ? 'mal' : '';
+      b.append(dot, document.createTextNode(nombreNodo(id)));
+      b.addEventListener('click', () => cambiarNodo(id));
+      c.append(b);
+    });
+    c.hidden = ids.length < 2;             // con un solo equipo no hace falta elegir
+  }
+
   // ---------- Mensajes que llegan ----------
   function alMensaje(topic, buf){
     const txt = buf.toString();
-    const sub = topic.slice(base().length);
+    const m = topic.match(/^vivero\/([^/]+)\/(.+)$/);
+    if (!m) return;
+    const id = m[1];
+    if (m[2] === 'online' || m[2] === 'nombre') {
+      if (id === 'oficina') return;
+      const n = nodos[id] || (nodos[id] = {});
+      if (m[2] === 'online') n.online = (txt === 'online'); else n.nombre = txt;
+      pintarEquipos();
+    }
+    if (id !== cfg.nodo) return;           // es de otro equipo: solo lo anotamos arriba
+    const sub = m[2];
     if (sub === 'estado') {
       try { estado = JSON.parse(txt); ultimoEstado = Date.now(); pintar(); } catch (e) {}
     } else if (sub === 'online') {
@@ -350,6 +407,7 @@
     editando = false;
     if (!cfgEquipo) { $('#ajustes-nota').textContent = 'Todavía no llegaron los valores del equipo.'; return; }
     CAMPOS.forEach(k => { $('#' + k).value = cfgEquipo[k]; });
+    $('#lbl-motor').textContent = cfgEquipo.recorrido ? 'Tiempo de recorrido del actuador (s)' : 'Tiempo máximo del motor (s)';
     $('#ajustes-nota').textContent = 'Los valores quedan guardados en el equipo, aunque se corte la luz.';
   }
   $('#ajustes-recargar').addEventListener('click', () => { ordenar('estado', '1'); cargarAjustes(); });
@@ -360,7 +418,7 @@
     if (!(n.temp_cerrar >= -10 && n.temp_cerrar <= 60)) err.push('La temperatura de cerrar va entre -10 y 60 °C.');
     if (!(n.temp_cerrar < n.temp_abrir - 0.5)) err.push('Cerrar tiene que ser al menos 0,5 °C menos que abrir.');
     if (!(n.hum_riego_on >= 0 && n.hum_riego_off <= 100 && n.hum_riego_on < n.hum_riego_off)) err.push('La humedad para regar tiene que ser menor que la de cortar (0 a 100 %).');
-    if (!(n.motor_max_s >= 5 && n.motor_max_s <= 600)) err.push('El tiempo del motor va entre 5 y 600 s.');
+    if (!(n.motor_max_s >= 5 && n.motor_max_s <= 600)) err.push('El tiempo del motor / recorrido va entre 5 y 600 s.');
     if (!(n.riego_max_min >= 1 && n.riego_max_min <= 120)) err.push('El riego máximo va entre 1 y 120 min.');
     if (!(n.riego_pausa_min >= 0 && n.riego_pausa_min <= 1440)) err.push('La pausa va entre 0 y 1440 min.');
     return err;
@@ -421,14 +479,14 @@
       pass: $('#c-pass').value
     };
     guardar('dm.conexion', cfg);
-    estado = null; online = null; cfgEquipo = null; ultimoEstado = 0;
+    estado = null; online = null; cfgEquipo = null; ultimoEstado = 0; pintarEquipos();
     conectar();
     avisar('Conectando…');
   });
   $('#c-desconectar').addEventListener('click', () => { desconectar(); avisar('Desconectado'); });
 
   // ---------- Arranque ----------
-  cargarConexion(); pintarAlarmas(); pintar();
+  cargarConexion(); pintarAlarmas(); pintar(); pintarEquipos();
   if (cfg.pass) conectar();
   else { pill('aviso', 'Falta configurar'); $$('nav button')[3].click(); }
 })();

@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1128" viewBox="0 0 1600 1128" font-family="Arial, Helvetica, sans-serif">
+<rect width="1600" height="1128" fill="#fff"/>
+<text x="60" y="62" font-size="32" font-weight="bold" fill="#1b2a20">Vivero Sol Puntano — Hibernáculo (ESP32 + LoRa)</text>
+<text x="60" y="96" font-size="18" fill="#55645a">ESP32 + DHT22 + LCD 20x4 I2C + LoRa Ra-02 433 MHz + 3 relés + palanca AUTO/MANUAL + 2 pulsadores + 4 LEDs</text>
+<rect x="60" y="140" width="260" height="788" rx="14" fill="#20303a"/>
+<text x="190" y="180" font-size="24" font-weight="bold" fill="#fff" text-anchor="middle">ESP32</text>
+<text x="190" y="206" font-size="15" fill="#cfd8dc" text-anchor="middle">hibernáculo</text>
+<text x="305" y="186" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">3V3</text>
+<circle cx="320" cy="180" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 180 H760" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="180" r="6" fill="#d32f2f"/>
+<text x="780" y="186" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#d32f2f">DHT22</tspan>  +   y   LoRa Ra-02  3.3V (¡solo 3,3 V!)</text>
+<text x="305" y="220" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">5V</text>
+<circle cx="320" cy="214" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 214 H760" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="214" r="6" fill="#d32f2f"/>
+<text x="780" y="220" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#d32f2f">Módulo de relés</tspan>  VCC   y   LCD  VCC</text>
+<text x="305" y="254" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GND</text>
+<circle cx="320" cy="248" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 248 H760" stroke="#111111" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="248" r="6" fill="#111111"/>
+<text x="780" y="254" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#111111">GND común</tspan>  DHT −, relés GND, LCD GND, Ra-02 GND, palanca, pulsadores, LEDs</text>
+<text x="305" y="288" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 4</text>
+<circle cx="320" cy="282" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 282 H760" stroke="#2e7d32" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="282" r="6" fill="#2e7d32"/>
+<text x="780" y="288" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#2e7d32">DHT22</tspan>  out (datos)</text>
+<text x="305" y="322" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 21</text>
+<circle cx="320" cy="316" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 316 H760" stroke="#6a1b9a" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="316" r="6" fill="#6a1b9a"/>
+<text x="780" y="322" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#6a1b9a">LCD 20x4 I2C</tspan>  SDA</text>
+<text x="305" y="356" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 22</text>
+<circle cx="320" cy="350" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 350 H760" stroke="#6a1b9a" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="350" r="6" fill="#6a1b9a"/>
+<text x="780" y="356" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#6a1b9a">LCD 20x4 I2C</tspan>  SCL</text>
+<text x="305" y="390" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 18</text>
+<circle cx="320" cy="384" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 384 H760" stroke="#ef6c00" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="384" r="6" fill="#ef6c00"/>
+<text x="780" y="390" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#ef6c00">LoRa Ra-02</tspan>  SCK</text>
+<text x="305" y="424" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 19</text>
+<circle cx="320" cy="418" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 418 H760" stroke="#ef6c00" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="418" r="6" fill="#ef6c00"/>
+<text x="780" y="424" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#ef6c00">LoRa Ra-02</tspan>  MISO</text>
+<text x="305" y="458" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 23</text>
+<circle cx="320" cy="452" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 452 H760" stroke="#ef6c00" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="452" r="6" fill="#ef6c00"/>
+<text x="780" y="458" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#ef6c00">LoRa Ra-02</tspan>  MOSI</text>
+<text x="305" y="492" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 5</text>
+<circle cx="320" cy="486" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 486 H760" stroke="#ef6c00" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="486" r="6" fill="#ef6c00"/>
+<text x="780" y="492" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#ef6c00">LoRa Ra-02</tspan>  NSS</text>
+<text x="305" y="526" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 35</text>
+<circle cx="320" cy="520" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 520 H760" stroke="#ef6c00" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="520" r="6" fill="#ef6c00"/>
+<text x="780" y="526" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#ef6c00">LoRa Ra-02</tspan>  DIO0 (cableado, el código no lo usa)</text>
+<text x="305" y="560" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 25</text>
+<circle cx="320" cy="554" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 554 H760" stroke="#1565c0" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="554" r="6" fill="#1565c0"/>
+<text x="780" y="560" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#1565c0">Relé 1</tspan>  IN1 → ABRIR venteo</text>
+<text x="305" y="594" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 26</text>
+<circle cx="320" cy="588" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 588 H760" stroke="#1565c0" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="588" r="6" fill="#1565c0"/>
+<text x="780" y="594" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#1565c0">Relé 2</tspan>  IN2 → CERRAR venteo</text>
+<text x="305" y="628" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 27</text>
+<circle cx="320" cy="622" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 622 H760" stroke="#1565c0" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="622" r="6" fill="#1565c0"/>
+<text x="780" y="628" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#1565c0">Relé 3</tspan>  IN3 → RIEGO</text>
+<text x="305" y="662" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 16</text>
+<circle cx="320" cy="656" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 656 H760" stroke="#b8860b" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="656" r="6" fill="#b8860b"/>
+<text x="780" y="662" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#b8860b">Palanca sin retención</tspan>  lado MANUAL (común a GND)</text>
+<text x="305" y="696" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 15</text>
+<circle cx="320" cy="690" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 690 H760" stroke="#b8860b" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="690" r="6" fill="#b8860b"/>
+<text x="780" y="696" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#b8860b">Palanca sin retención</tspan>  lado AUTOMÁTICO</text>
+<text x="305" y="730" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 17</text>
+<circle cx="320" cy="724" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 724 H760" stroke="#b8860b" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="724" r="6" fill="#b8860b"/>
+<text x="780" y="730" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#b8860b">Pulsador RIEGO</tspan>  ↔ GND</text>
+<text x="305" y="764" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 32</text>
+<circle cx="320" cy="758" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 758 H760" stroke="#b8860b" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="758" r="6" fill="#b8860b"/>
+<text x="780" y="764" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#b8860b">Pulsador VENTEO</tspan>  ↔ GND</text>
+<text x="305" y="798" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 33</text>
+<circle cx="320" cy="792" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 792 H760" stroke="#00838f" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="792" r="6" fill="#00838f"/>
+<text x="780" y="798" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#00838f">LED AUTO</tspan>  + resistencia 330 Ω → GND</text>
+<text x="305" y="832" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 13</text>
+<circle cx="320" cy="826" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 826 H760" stroke="#00838f" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="826" r="6" fill="#00838f"/>
+<text x="780" y="832" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#00838f">LED MANUAL</tspan>  + resistencia 330 Ω → GND</text>
+<text x="305" y="866" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 2</text>
+<circle cx="320" cy="860" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 860 H760" stroke="#00838f" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="860" r="6" fill="#00838f"/>
+<text x="780" y="866" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#00838f">LED RIEGO</tspan>  + resistencia 330 Ω → GND (también prende el LED de la placa)</text>
+<text x="305" y="900" font-size="17" font-weight="bold" fill="#fff" text-anchor="end">GPIO 14</text>
+<circle cx="320" cy="894" r="7" fill="#d9d9d9" stroke="#555" stroke-width="2"/>
+<path d="M327 894 H760" stroke="#00838f" stroke-width="5" stroke-linecap="round"/>
+<circle cx="760" cy="894" r="6" fill="#00838f"/>
+<text x="780" y="900" font-size="17" fill="#1b2a20"><tspan font-weight="bold" fill="#00838f">LED VENTEO</tspan>  + resistencia 330 Ω → GND (fijo = abierto, titila = moviéndose)</text>
+<rect x="60" y="958" width="720" height="134" rx="10" fill="#f4f7f4" stroke="#cfd8d1" stroke-width="2"/>
+<text x="80" y="988" font-size="16" fill="#1b2a20">Arduino IDE: placa ESP32 Dev Module. Abrir firmware/hibernaculo/hibernaculo.ino</text>
+<text x="80" y="1014" font-size="16" fill="#1b2a20">config.h: NODO_NUM (2 = primer hibernáculo) y NODO_NOMBRE</text>
+<text x="80" y="1040" font-size="16" fill="#1b2a20">Librerías: LoRa (Sandeep Mistry), LiquidCrystal I2C (Frank de Brabander), DHT sensor library</text>
+<text x="80" y="1066" font-size="16" fill="#1b2a20">Pulsadores y palanca sin resistencias: el ESP32 usa su pull-up interna</text>
+<rect x="800" y="958" width="740" height="160" rx="10" fill="#fff6e5" stroke="#f0d59a" stroke-width="2"/>
+<text x="820" y="988" font-size="16" font-weight="bold" fill="#7a5200">Antes de enchufar:</text>
+<text x="820" y="1014" font-size="16" font-weight="normal" fill="#7a5200">Ra-02 a 3,3 V. A 5 V se quema.</text>
+<text x="820" y="1040" font-size="16" font-weight="normal" fill="#7a5200">Nunca transmitir sin la antena puesta: se daña el módulo.</text>
+<text x="820" y="1066" font-size="16" font-weight="normal" fill="#7a5200">LCD a 5 V: su módulo I2C sube SDA/SCL a 5 V. Poner un conversor</text>
+<text x="820" y="1092" font-size="16" font-weight="normal" fill="#7a5200">de nivel I2C, o sacarle las 2 resistencias pull-up al módulo.</text>
+</svg>

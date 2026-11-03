@@ -475,6 +475,7 @@ void mqttTick() {
     estabaConectado = true;
     conectadoDesde  = millis();
     publicar(t("online"), "online", true);
+    publicar(t("nombre"), NODO_NOMBRE, true);
     mqtt.subscribe(t("cmd/#").c_str(), 1);
     publicarConfig();
     publicarEstado();
