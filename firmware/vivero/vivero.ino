@@ -16,6 +16,10 @@
 #include "secrets.h"
 #include "ca_cert.h"
 
+#if !MODO_WOKWI
+  #include <WiFiManager.h>      // portal de WiFi (libreria de tzapu)
+#endif
+
 // -------------------------------------------------------------
 //  Tipos y estado global
 // -------------------------------------------------------------
@@ -58,6 +62,12 @@ uint8_t fallosSensor = 0;
 
 bool caOk = false;
 unsigned long ultLectura = 0, ultPublicacion = 0, ultIntentoMqtt = 0;
+
+// Datos del broker que se usan de verdad. Arrancan con lo de config.h/secrets.h;
+// en el equipo real se pueden cambiar desde el portal y quedan guardados.
+char mqttHost[64] = MQTT_HOST;
+char mqttUser[40] = MQTT_USER;
+char mqttPass[64] = MQTT_PASS;
 bool hayCambios = false;       // algo cambio -> publicar estado ya
 
 // Arma un topic: t("estado") -> "vivero/nodo1/estado"
@@ -384,7 +394,7 @@ void mqttTick() {
 
   // Ultimo deseo (LWT): si el ESP32 se cae sin avisar, el broker
   // publica "offline" en su nombre. Asi la app sabe que esta caido.
-  if (mqtt.connect(id.c_str(), MQTT_USER, MQTT_PASS,
+  if (mqtt.connect(id.c_str(), mqttUser, mqttPass,
                    t("online").c_str(), 1, true, "offline")) {
     Serial.println("OK");
     estabaConectado = true;
@@ -415,6 +425,90 @@ void wifiTick() {
 }
 
 // -------------------------------------------------------------
+//  Datos del broker guardados (los carga el portal)
+// -------------------------------------------------------------
+void cargarCredenciales() {
+  prefs.begin("broker", true);
+  String h = prefs.getString("host", ""), u = prefs.getString("user", ""), p = prefs.getString("pass", "");
+  prefs.end();
+  if (h.length()) strlcpy(mqttHost, h.c_str(), sizeof(mqttHost));
+  if (u.length()) strlcpy(mqttUser, u.c_str(), sizeof(mqttUser));
+  if (p.length()) strlcpy(mqttPass, p.c_str(), sizeof(mqttPass));
+}
+
+#if !MODO_WOKWI
+// -------------------------------------------------------------
+//  Portal de WiFi (WiFiManager), en modo NO bloqueante:
+//  mientras esta abierto, el venteo y el riego siguen funcionando.
+// -------------------------------------------------------------
+WiFiManager wm;
+WiFiManagerParameter* pHost;
+WiFiManagerParameter* pUser;
+WiFiManagerParameter* pPass;
+unsigned long sinWifiDesde = 0;
+
+void portalAbrir(const char* motivo) {
+  if (wm.getConfigPortalActive()) return;
+  Serial.printf("[PORTAL] abriendo red \"%s\" (%s). Conectate con el celular.\n", PORTAL_NOMBRE, motivo);
+  wm.startConfigPortal(PORTAL_NOMBRE, PORTAL_CLAVE);
+}
+
+// Se llama cuando en el portal tocan "Save"
+void portalGuardo() {
+  // La clave solo se cambia si escribieron algo (el campo arranca vacio a proposito)
+  if (strlen(pHost->getValue())) strlcpy(mqttHost, pHost->getValue(), sizeof(mqttHost));
+  if (strlen(pUser->getValue())) strlcpy(mqttUser, pUser->getValue(), sizeof(mqttUser));
+  if (strlen(pPass->getValue())) strlcpy(mqttPass, pPass->getValue(), sizeof(mqttPass));
+  prefs.begin("broker", false);
+  prefs.putString("host", mqttHost);
+  prefs.putString("user", mqttUser);
+  prefs.putString("pass", mqttPass);
+  prefs.end();
+  Serial.printf("[PORTAL] guardado: broker %s, usuario %s\n", mqttHost, mqttUser);
+  mqtt.disconnect();          // reconecta con los datos nuevos
+  ultIntentoMqtt = 0;
+}
+
+void portalSetup() {
+  pHost = new WiFiManagerParameter("mqtt_host", "Broker MQTT", mqttHost, sizeof(mqttHost) - 1);
+  pUser = new WiFiManagerParameter("mqtt_user", "Usuario MQTT", mqttUser, sizeof(mqttUser) - 1);
+  pPass = new WiFiManagerParameter("mqtt_pass", "Clave MQTT (vacio = no cambiar)", "", sizeof(mqttPass) - 1,
+                                   "type='password'");
+  wm.addParameter(pHost);
+  wm.addParameter(pUser);
+  wm.addParameter(pPass);
+  wm.setSaveParamsCallback(portalGuardo);
+  wm.setTitle("Vivero DoMoVil");
+  wm.setConfigPortalBlocking(false);         // clave: no frena el loop
+  wm.setConfigPortalTimeout(PORTAL_TIMEOUT_S);
+  wm.setConnectTimeout(10);                  // al probar un WiFi nuevo, espera como mucho 10 s
+  wm.setShowInfoUpdate(false);               // sin boton de actualizar firmware desde el portal
+
+  pinMode(PIN_BOTON_PORTAL, INPUT_PULLUP);
+
+  // Prueba el WiFi guardado; si no hay o no conecta, abre el portal (y sigue de largo)
+  if (wm.autoConnect(PORTAL_NOMBRE, PORTAL_CLAVE)) Serial.println("[WIFI] conectado con la red guardada");
+  else Serial.printf("[PORTAL] sin WiFi conocido: red \"%s\" abierta. Conectate con el celular.\n", PORTAL_NOMBRE);
+}
+
+void portalTick() {
+  wm.process();               // atiende la pagina del portal si esta abierta
+
+  // Boton BOOT apretado 5 s -> abrir portal (para cambiar de WiFi o de broker)
+  static unsigned long apretadoDesde = 0;
+  if (digitalRead(PIN_BOTON_PORTAL) == LOW) {
+    if (apretadoDesde == 0) apretadoDesde = millis();
+    else if (millis() - apretadoDesde > BOTON_PORTAL_MS) { portalAbrir("boton BOOT"); apretadoDesde = 0; }
+  } else apretadoDesde = 0;
+
+  // Mucho tiempo sin WiFi (cambiaron el router, la clave...) -> abrir portal solo
+  if (WiFi.status() == WL_CONNECTED) sinWifiDesde = 0;
+  else if (sinWifiDesde == 0) sinWifiDesde = millis();
+  else if (millis() - sinWifiDesde > PORTAL_REABRIR_MIN * 60000UL) { portalAbrir("sin WiFi hace rato"); sinWifiDesde = millis(); }
+}
+#endif
+
+// -------------------------------------------------------------
 //  Setup y loop
 // -------------------------------------------------------------
 void setup() {
@@ -440,16 +534,21 @@ void setup() {
 
   dht.begin();
 
-  // 3) Red: arranca y se reconecta sola, sin bloquear
+  // 3) Red
+  cargarCredenciales();
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+#if MODO_WOKWI
+  WiFi.begin(WIFI_SSID, WIFI_PASS);          // Wokwi: red fija, sin portal
+#else
+  portalSetup();                              // equipo real: WiFi guardado o portal
+#endif
 
   // 4) MQTT con TLS
   caOk = String(CA_CERT).indexOf("PEGAR_ACA") < 0;   // ¿pegaron el certificado?
   if (caOk) red.setCACert(CA_CERT);
   else Serial.println("[MQTT] FALTA el certificado en ca_cert.h: no se conecta al broker");
-  mqtt.setServer(MQTT_HOST, MQTT_PORT);
+  mqtt.setServer(mqttHost, MQTT_PORT);
   mqtt.setCallback(alRecibir);
   mqtt.setBufferSize(512);
   mqtt.setKeepAlive(MQTT_KEEPALIVE_S);   // ver config.h
@@ -469,6 +568,9 @@ void loop() {
   riegoTick();
 
   wifiTick();
+#if !MODO_WOKWI
+  portalTick();
+#endif
   mqttTick();
 
   if (hayCambios || ahora - ultPublicacion >= INTERVALO_PUBLICACION_MS) {

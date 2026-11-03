@@ -49,7 +49,7 @@ Los valores fuera de rango se rechazan y se avisa por `alarma`.
 1. Entrar a **wokwi.com** → *New Project* → **ESP32**.
 2. Reemplazar `diagram.json` por el de `wokwi/` y crear `libraries.txt` con el de `wokwi/`.
 3. Copiar el contenido de `vivero.ino` en `sketch.ino`.
-4. Con el botón **+** (al lado de las pestañas) crear `config.h`, `ca_cert.h` y `secrets.h` y pegar su contenido
+4. Con el botón **+** (al lado de las pestañas) crear `config.h` (con `MODO_WOKWI 1`), `ca_cert.h` y `secrets.h` y pegar su contenido
    (`secrets.h` = copia de `secrets.example.h` con la clave real de `vivero-esp`).
 5. Pegar el certificado en `ca_cert.h` (EMQX → Overview → CA Certificate).
 6. Play. En el monitor serie tiene que aparecer `[MQTT] conectando al broker... OK`.
@@ -74,7 +74,7 @@ El monitor serie dice `[MQTT] se cayo la conexion, codigo X, duro Ys`:
 `-4` = el broker no recibió el "sigo vivo" a tiempo, `-3` = se cortó la conexión de red, `-1` = desconexión normal.
 
 ## Antes de pasar al equipo real
-En `config.h`: `DHT_TIPO DHT11`, `MQTT_KEEPALIVE_S 30` y `RELE_ACTIVO_ALTO false` (según el módulo de relés). En `secrets.h`: el WiFi real.
+En `config.h` cambiar una sola línea: `MODO_WOKWI 0` (pone DHT11, keepalive 30, relés activos en bajo y activa el **portal de WiFi**). En `secrets.h`: la clave del broker y `PORTAL_CLAVE`. El WiFi se carga desde el celular: ver `docs/GUIA_ARMADO.md`, punto 3 bis.
 
 ## App Android (carpeta `app/`)
 Cada push que toque `app/` compila el APK y lo publica en **Releases** (etiqueta `ultima`): bajar `vivero-domovil.apk` desde el celu e instalar.

@@ -104,8 +104,8 @@
   <!-- ================= NOTAS ================= -->
   <rect x="80" y="890" width="760" height="100" rx="10" fill="#f4f7f4" stroke="#cfd8d1" stroke-width="2"/>
   <text x="100" y="920" font-size="17" font-weight="bold" fill="#1b2a20">En config.h antes de cargar:</text>
-  <text x="100" y="946" font-size="16" fill="#1b2a20">DHT_TIPO DHT11 · MQTT_KEEPALIVE_S 30 · RELE_ACTIVO_ALTO false</text>
-  <text x="100" y="972" font-size="14" fill="#55645a">(si los relés quedan al revés, cambiar RELE_ACTIVO_ALTO a true)</text>
+  <text x="100" y="946" font-size="16" fill="#1b2a20">#define MODO_WOKWI 0   (una sola línea)</text>
+  <text x="100" y="972" font-size="14" fill="#55645a">WiFi: desde el celular (red Vivero-nodo1). Botón BOOT 5 s = reabre el portal.</text>
   <rect x="860" y="890" width="660" height="100" rx="10" fill="#fff6e5" stroke="#f0d59a" stroke-width="2"/>
   <text x="880" y="920" font-size="17" font-weight="bold" fill="#7a5200">No usar (reservados):</text>
   <text x="880" y="946" font-size="16" fill="#7a5200">GPIO 32 a 39 → sensores de humedad de suelo</text>

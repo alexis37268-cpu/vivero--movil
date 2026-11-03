@@ -6,10 +6,16 @@
 // =============================================================
 #pragma once
 
-// En Wokwi la red es "Wokwi-GUEST" sin clave.
+// WiFi fijo: SOLO se usa en Wokwi (MODO_WOKWI 1). Ahi la red es "Wokwi-GUEST" sin clave.
+// En el equipo real el WiFi se carga desde el portal con el celular.
 #define WIFI_SSID  "Wokwi-GUEST"
 #define WIFI_PASS  ""
 
-// Usuario creado en EMQX -> Access Control -> Authentication
+// Usuario creado en EMQX -> Access Control -> Authentication.
+// En el equipo real son los valores de arranque: se pueden cambiar desde el portal.
 #define MQTT_USER  "vivero-esp"
 #define MQTT_PASS  "PONER_LA_CLAVE_ACA"
+
+// Clave de la red WiFi del portal (minimo 8 caracteres).
+// Cambiarla: con esta clave cualquiera que este cerca podria configurar el equipo.
+#define PORTAL_CLAVE  "cambiar-esta-clave"

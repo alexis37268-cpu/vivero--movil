@@ -5,32 +5,61 @@
 // =============================================================
 #pragma once
 
+// =============================================================
+//  EL UNICO INTERRUPTOR QUE HAY QUE TOCAR
+//    1 = simulador Wokwi   (DHT22, keepalive 120, WiFi fijo "Wokwi-GUEST", LEDs)
+//    0 = equipo real       (DHT11, keepalive 30, portal de WiFi, modulo de reles)
+// =============================================================
+#define MODO_WOKWI  1
+
 // ---------- Identidad del equipo ----------
 // Cada controlador tiene su ID. Si manana hay otro vivero: "nodo2".
 #define NODO_ID     "nodo1"
 #define TOPIC_BASE  "vivero/" NODO_ID      // => vivero/nodo1/...
 
 // ---------- Broker MQTT (EMQX Serverless) ----------
+// Valor por defecto: en el equipo real se puede cambiar desde el portal de WiFi.
 #define MQTT_HOST   "p64138d1.ala.us-east-1.emqxsl.com"
 #define MQTT_PORT   8883                    // MQTT sobre TLS
 // Keepalive: cada cuanto el ESP32 le avisa al broker "sigo vivo".
 // Si el broker no recibe nada en 1,5 x este tiempo, corta la conexion.
-//   Equipo real: 30 s.
-//   Wokwi: 120 s (el simulador va mas lento que el reloj real y no llega a avisar a tiempo).
-#define MQTT_KEEPALIVE_S  120
+// En Wokwi va mas largo porque el simulador anda mas lento que el reloj real.
+#if MODO_WOKWI
+  #define MQTT_KEEPALIVE_S  120
+#else
+  #define MQTT_KEEPALIVE_S  30
+#endif
+
+// ---------- Portal de WiFi (solo equipo real) ----------
+// Si no encuentra una red conocida, el ESP32 arma su propia red WiFi.
+// Te conectas con el celular, se abre una pagina y cargas el WiFi del lugar
+// y los datos del broker. La clave de esta red va en secrets.h (PORTAL_CLAVE).
+#define PORTAL_NOMBRE      "Vivero-" NODO_ID   // nombre de la red del portal
+#define PORTAL_TIMEOUT_S   300                 // se cierra solo si nadie entra en 5 min
+#define PORTAL_REABRIR_MIN 10                  // sin WiFi tanto tiempo -> vuelve a abrir el portal
+#define PIN_BOTON_PORTAL   0                   // boton BOOT de la placa
+#define BOTON_PORTAL_MS    5000                // mantenerlo 5 s abre el portal
 
 // ---------- Sensor de temperatura y humedad ----------
 #define PIN_DHT     4
-// Wokwi solo trae DHT22. En el equipo real de Matias va DHT11.
-#define DHT_TIPO    DHT22                   // cambiar a DHT11 en el real
+#if MODO_WOKWI
+  #define DHT_TIPO  DHT22                      // Wokwi solo trae DHT22
+#else
+  #define DHT_TIPO  DHT11                      // el de Matias
+#endif
 
 // ---------- Salidas (reles) ----------
 #define PIN_VENTEO_ABRIR   25
 #define PIN_VENTEO_CERRAR  26
 #define PIN_RIEGO          27
-// Los LEDs de Wokwi se prenden con HIGH  -> true
-// Los modulos de rele chinos comunes se activan con LOW -> false
-#define RELE_ACTIVO_ALTO   true
+// Los LEDs de Wokwi se prenden con HIGH -> true.
+// Los modulos de rele chinos comunes se activan con LOW -> false.
+// Si en el equipo real los reles quedan al reves, cambiar el false por true.
+#if MODO_WOKWI
+  #define RELE_ACTIVO_ALTO true
+#else
+  #define RELE_ACTIVO_ALTO false
+#endif
 
 // ---------- Entradas (finales de carrera del venteo) ----------
 // Contacto a GND cuando esta pisado (se usa pull-up interno).

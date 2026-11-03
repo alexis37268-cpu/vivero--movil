@@ -49,21 +49,43 @@ Se arma en **dos etapas**: primero con LEDs/relés sin carga (no se rompe nada s
 2. *Archivo → Preferencias → URLs adicionales*:
    `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
 3. *Herramientas → Placa → Gestor de placas*: instalar **esp32** (de Espressif).
-4. *Gestor de librerías*: instalar **PubSubClient** (Nick O'Leary) y **DHT sensor library** (Adafruit, acepta instalar Adafruit Unified Sensor).
+4. *Gestor de librerías*: instalar **PubSubClient** (Nick O'Leary), **DHT sensor library** (Adafruit, acepta instalar Adafruit Unified Sensor) y **WiFiManager** (tzapu).
 5. Abrir la carpeta `firmware/vivero/`.
-6. Copiar `secrets.example.h` como **`secrets.h`** y completar WiFi y la clave del usuario `vivero-esp` (te la paso por privado, no por grupo).
-7. En `config.h` cambiar:
-   - `#define DHT_TIPO DHT11`
-   - `#define MQTT_KEEPALIVE_S 30`
-   - `#define RELE_ACTIVO_ALTO false` → si los relés quedan **al revés** (prendidos cuando deberían estar apagados), cambiarlo a `true`.
+6. Copiar `secrets.example.h` como **`secrets.h`** y completar:
+   - `MQTT_PASS`: la clave del usuario `vivero-esp` (te la paso por privado, no por grupo).
+   - `PORTAL_CLAVE`: una clave tuya de al menos 8 caracteres para la red del portal.
+   - El WiFi **no** se pone acá: se carga desde el celular (punto 3 bis).
+7. En `config.h` cambiar **una sola línea**: `#define MODO_WOKWI 0`
+   (eso solo pone DHT11, keepalive 30, relés activos en bajo y activa el portal de WiFi).
+   Si los relés quedan **al revés** (prendidos cuando deberían estar apagados), en `config.h` cambiar el `RELE_ACTIVO_ALTO false` por `true`.
 8. Placa: **ESP32 Dev Module**. Puerto: el COM que aparezca. Subir.
-9. Abrir el **Monitor serie a 115200**. Tiene que verse:
+9. Abrir el **Monitor serie a 115200**. La primera vez tiene que verse:
    ```
    === Controlador de vivero nodo1 ===
+   [PORTAL] sin WiFi conocido: red "Vivero-nodo1" abierta. Conectate con el celular.
+   ```
+
+## 3 bis. Cargar el WiFi con el celular (portal)
+
+1. En el celular, ir a WiFi y conectarse a la red **Vivero-nodo1** con la `PORTAL_CLAVE` que pusiste en `secrets.h`.
+2. Se abre sola una página (si no, entrar a **192.168.4.1** en el navegador).
+3. Tocar **Configure WiFi**, elegir el WiFi del lugar y poner su clave.
+   Abajo están los datos del broker: ya vienen cargados, **dejarlos como están** (la clave MQTT vacía = no se cambia).
+4. **Save**. El ESP32 se conecta y en el monitor serie aparece:
+   ```
    [WIFI] conectado, IP 192.168.x.x
    [MQTT] conectando al broker... OK
    ```
-   Si dice `fallo, codigo 4` → usuario o clave mal. `codigo -2` → certificado, antena o internet.
+   Si dice `fallo, codigo 4` → usuario o clave del broker mal. `codigo -2` → certificado, antena o internet.
+
+**Queda guardado**: después de un corte de luz se conecta solo. Para cambiar de WiFi (otro router, otro lugar):
+- **Mantener apretado el botón BOOT de la placa 5 segundos** → vuelve a abrir el portal.
+- O solo: si pasa **10 minutos sin WiFi**, abre el portal por su cuenta.
+- El portal se cierra solo a los 5 minutos si nadie entra.
+
+Mientras el portal está abierto, **la lógica sigue funcionando** (venteo y riego en automático).
+Única excepción: cuando tocás Save, el ESP32 tarda hasta 10 s probando el WiFi nuevo y en ese rato no atiende el venteo.
+Por eso **los finales de carrera de potencia van sí o sí en serie con el motor** (punto 5): cortan aunque el ESP32 esté ocupado.
 
 ---
 
