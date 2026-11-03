@@ -1,5 +1,5 @@
 // =============================================================
-//  Controlador de vivero - ESP32
+//  Controlador de vivero - ESP32 / ESP8266 (el mismo archivo para los dos)
 //  Temperatura/humedad, venteo (motor DC con 2 reles) y riego.
 //
 //  Idea central: TODA la logica corre en el ESP32. Internet y la
