@@ -1,6 +1,6 @@
 {
   "appId": "com.alexis.viverodomovil",
-  "appName": "Vivero DoMoVil",
+  "appName": "Vivero Sol Puntano",
   "webDir": "www",
-  "android": { "backgroundColor": "#2F7D4A" }
+  "android": { "backgroundColor": "#FFFFFF" }
 }

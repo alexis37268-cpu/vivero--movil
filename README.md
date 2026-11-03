@@ -1,4 +1,4 @@
-# Vivero DoMoVil — controlador de vivero (ESP32 + MQTT + app)
+# Vivero Sol Puntano — controlador de vivero (ESP32 + MQTT + app)
 
 Controla temperatura/humedad, venteo (motor DC con 2 relés + finales de carrera) y riego.
 Toda la lógica corre en el ESP32; el broker MQTT (EMQX Serverless) y la app son para ver y mandar órdenes desde cualquier lado.
@@ -77,7 +77,7 @@ El monitor serie dice `[MQTT] se cayo la conexion, codigo X, duro Ys`:
 En `config.h` cambiar una sola línea: `MODO_WOKWI 0` (pone DHT11, keepalive 30, relés activos en bajo y activa el **portal de WiFi**). En `secrets.h`: la clave del broker y `PORTAL_CLAVE`. El WiFi se carga desde el celular: ver `docs/GUIA_ARMADO.md`, punto 3 bis.
 
 ## App Android (carpeta `app/`)
-Cada push que toque `app/` compila el APK y lo publica en **Releases** (etiqueta `ultima`): bajar `vivero-domovil.apk` desde el celu e instalar.
+Cada push que toque `app/` compila el APK y lo publica en **Releases** (etiqueta `ultima`): bajar `vivero-sol-puntano.apk` desde el celu e instalar.
 
 La primera vez la app abre en **Conexión**: completar usuario y clave de `vivero-app` (la dirección del broker ya viene cargada). Los datos quedan guardados solo en el celular, nunca en el código.
 

@@ -27,17 +27,17 @@ jobs:
           pip install pillow
           python3 icono.py
           npx cap add android
-          npx @capacitor/assets generate --android --iconBackgroundColor '#2F7D4A' --splashBackgroundColor '#2F7D4A' || echo sin iconos
+          npx @capacitor/assets generate --android --iconBackgroundColor '#FFFFFF' --splashBackgroundColor '#FFFFFF' || echo sin iconos
           npx cap sync android
           python3 parche-android.py
       - name: Compilar
         run: |
           cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
-          cp app/build/outputs/apk/debug/app-debug.apk ../vivero-domovil.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../vivero-sol-puntano.apk
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ultima
-          name: Vivero DoMoVil
-          body: Bajá vivero-domovil.apk desde el celu y abrilo para instalar.
-          files: app/vivero-domovil.apk
+          name: Vivero Sol Puntano
+          body: Bajá vivero-sol-puntano.apk desde el celu y abrilo para instalar.
+          files: app/vivero-sol-puntano.apk
           make_latest: true

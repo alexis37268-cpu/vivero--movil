@@ -556,7 +556,7 @@ void portalSetup() {
   wm.addParameter(pUser);
   wm.addParameter(pPass);
   wm.setSaveParamsCallback(portalGuardo);
-  wm.setTitle("Vivero DoMoVil");
+  wm.setTitle("Vivero Sol Puntano");
   wm.setConfigPortalBlocking(false);         // clave: no frena el loop
   wm.setConfigPortalTimeout(PORTAL_TIMEOUT_S);
   wm.setConnectTimeout(10);                  // al probar un WiFi nuevo, espera como mucho 10 s

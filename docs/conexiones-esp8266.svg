@@ -2,7 +2,7 @@
   <rect width="1600" height="1000" fill="#ffffff"/>
 
   <!-- Titulo -->
-  <text x="80" y="62" font-size="34" font-weight="bold" fill="#1b2a20">Vivero DoMoVil — Conexiones con NodeMCU ESP8266 (prueba)</text>
+  <text x="80" y="62" font-size="34" font-weight="bold" fill="#1b2a20">Vivero Sol Puntano — Conexiones con NodeMCU ESP8266 (prueba)</text>
   <text x="80" y="96" font-size="18" fill="#55645a">NodeMCU ESP8266 + DHT11 + módulo de 3 relés + 2 finales de carrera. Para el equipo final va el ESP32.</text>
 
   <!-- ================= ESP32 ================= -->

@@ -2,7 +2,7 @@
   <rect width="1600" height="1000" fill="#ffffff"/>
 
   <!-- Titulo -->
-  <text x="80" y="62" font-size="34" font-weight="bold" fill="#1b2a20">Vivero DoMoVil — Conexiones etapa 1 (banco de prueba)</text>
+  <text x="80" y="62" font-size="34" font-weight="bold" fill="#1b2a20">Vivero Sol Puntano — Conexiones etapa 1 (banco de prueba)</text>
   <text x="80" y="96" font-size="18" fill="#55645a">ESP32-WROOM-32U + DHT11 + módulo de 3 relés + 2 finales de carrera. Sin motor ni válvula todavía.</text>
 
   <!-- ================= ESP32 ================= -->
