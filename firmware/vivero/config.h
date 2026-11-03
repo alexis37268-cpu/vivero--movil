@@ -44,15 +44,17 @@
 // Se eligen solos segun la placa. En el NodeMCU (ESP8266) se evitan
 // D3, D4 y D8, que deciden el arranque: con algo conectado ahi a veces no bootea.
 #if defined(ESP8266)
-  #define PIN_DHT            D5
-  #define PIN_VENTEO_ABRIR   D1
-  #define PIN_VENTEO_CERRAR  D2
-  #define PIN_RIEGO          D0
-  #define PIN_FIN_ABIERTO    D6
-  #define PIN_FIN_CERRADO    D7
+  // Van con el numero GPIO (no "D5", "D1"...) para que compile con cualquier
+  // placa ESP8266 elegida en el IDE: NodeMCU, "Generic ESP8266 Module", etc.
+  #define PIN_DHT            14    // D5
+  #define PIN_VENTEO_ABRIR   5     // D1
+  #define PIN_VENTEO_CERRAR  4     // D2
+  #define PIN_RIEGO          16    // D0
+  #define PIN_FIN_ABIERTO    12    // D6
+  #define PIN_FIN_CERRADO    13    // D7
   // Pulsadores del tablero (a GND, sin resistencias: pull-up interna)
   #define PIN_BOTON_MODO     0     // boton FLASH de la placa: toque = modo, 5 s = portal
-  #define PIN_BOTON_RIEGO    D4    // ojo: no arrancar la placa con este apretado
+  #define PIN_BOTON_RIEGO    2     // D4 - ojo: no arrancar la placa con este apretado
   #define PIN_BOTON_VENTEO   3     // RX (el monitor serie igual funciona)
 #else
   // Pulsadores del tablero (a GND, sin resistencias: pull-up interna)
