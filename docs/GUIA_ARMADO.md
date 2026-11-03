@@ -81,7 +81,7 @@ Limitaciones (por eso el equipo final va con ESP32): una sola entrada analógica
 5. Abrir la carpeta `firmware/vivero/`.
 6. Copiar `secrets.example.h` como **`secrets.h`** y completar:
    - `MQTT_PASS`: la clave del usuario `vivero-esp` (te la paso por privado, no por grupo).
-   - `PORTAL_CLAVE`: una clave tuya de al menos 8 caracteres para la red del portal.
+   - `PORTAL_CLAVE`: dejarla vacía (`""`) para que la red del portal sea **abierta**, o poner una clave de 8 caracteres o más.
    - El WiFi **no** se pone acá: se carga desde el celular (punto 3 bis).
 7. En `config.h` cambiar **una sola línea**: `#define MODO_WOKWI 0`
    (eso solo pone DHT11, keepalive 30, relés activos en bajo y activa el portal de WiFi).
@@ -96,7 +96,7 @@ Limitaciones (por eso el equipo final va con ESP32): una sola entrada analógica
 
 ## 3 bis. Cargar el WiFi con el celular (portal)
 
-1. En el celular, ir a WiFi y conectarse a la red **Vivero-nodo1** con la `PORTAL_CLAVE` que pusiste en `secrets.h`.
+1. En el celular, ir a WiFi y conectarse a la red **Vivero-nodo1** (abierta, o con la `PORTAL_CLAVE` si le pusiste una).
 2. Se abre sola una página (si no, entrar a **192.168.4.1** en el navegador).
 3. Tocar **Configure WiFi**, elegir el WiFi del lugar y poner su clave.
    Abajo están los datos del broker: ya vienen cargados, **dejarlos como están** (la clave MQTT vacía = no se cambia).

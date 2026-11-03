@@ -16,6 +16,7 @@
 #define MQTT_USER  "vivero-esp"
 #define MQTT_PASS  "PONER_LA_CLAVE_ACA"
 
-// Clave de la red WiFi del portal (minimo 8 caracteres).
-// Cambiarla: con esta clave cualquiera que este cerca podria configurar el equipo.
-#define PORTAL_CLAVE  "cambiar-esta-clave"
+// Clave de la red WiFi del portal.
+//   ""          -> red ABIERTA: cualquiera con un celular la puede configurar (como un enchufe inteligente)
+//   8 o mas car.-> red con contrasena
+#define PORTAL_CLAVE  ""

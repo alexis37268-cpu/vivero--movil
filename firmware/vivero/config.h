@@ -33,7 +33,7 @@
 // ---------- Portal de WiFi (solo equipo real) ----------
 // Si no encuentra una red conocida, el ESP32 arma su propia red WiFi.
 // Te conectas con el celular, se abre una pagina y cargas el WiFi del lugar
-// y los datos del broker. La clave de esta red va en secrets.h (PORTAL_CLAVE).
+// y los datos del broker. Red abierta o con clave: se elige en secrets.h (PORTAL_CLAVE).
 #define PORTAL_NOMBRE      "Vivero-" NODO_ID   // nombre de la red del portal
 #define PORTAL_TIMEOUT_S   300                 // se cierra solo si nadie entra en 5 min
 #define PORTAL_REABRIR_MIN 10                  // sin WiFi tanto tiempo -> vuelve a abrir el portal

@@ -522,10 +522,13 @@ WiFiManagerParameter* pUser;
 WiFiManagerParameter* pPass;
 unsigned long sinWifiDesde = 0;
 
+// Clave de la red del portal: vacia (o menos de 8 caracteres) = red ABIERTA, sin contrasena.
+const char* portalClave() { return strlen(PORTAL_CLAVE) >= 8 ? PORTAL_CLAVE : nullptr; }
+
 void portalAbrir(const char* motivo) {
   if (wm.getConfigPortalActive()) return;
   Serial.printf("[PORTAL] abriendo red \"%s\" (%s). Conectate con el celular.\n", PORTAL_NOMBRE, motivo);
-  wm.startConfigPortal(PORTAL_NOMBRE, PORTAL_CLAVE);
+  wm.startConfigPortal(PORTAL_NOMBRE, portalClave());
 }
 
 // Se llama cuando en el portal tocan "Save"
@@ -564,7 +567,7 @@ void portalSetup() {
 #endif
 
   // Prueba el WiFi guardado; si no hay o no conecta, abre el portal (y sigue de largo)
-  if (wm.autoConnect(PORTAL_NOMBRE, PORTAL_CLAVE)) Serial.println("[WIFI] conectado con la red guardada");
+  if (wm.autoConnect(PORTAL_NOMBRE, portalClave())) Serial.println("[WIFI] conectado con la red guardada");
   else Serial.printf("[PORTAL] sin WiFi conocido: red \"%s\" abierta. Conectate con el celular.\n", PORTAL_NOMBRE);
 }
 
