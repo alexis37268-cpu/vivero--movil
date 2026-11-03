@@ -15,9 +15,6 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 | `firmware/vivero/` | Código para ESP32 y ESP8266 (`vivero.ino`, `config.h`, `ca_cert.h`, `secrets.example.h`, `prefs8266.h`) |
 | `wokwi/` | Circuito para el simulador (`diagram.json`, `libraries.txt`) |
 | `docs/GUIA_ARMADO.md` | Guía de armado para el equipo real |
-| `firmware/hibernaculo/` | Hibernáculo: ESP32 con LoRa, pantalla, palanca, pulsadores y LEDs (sin WiFi) |
-| `firmware/oficina/` | Oficina: NodeMCU 8266 que recibe los hibernáculos por LoRa y los sube al broker |
-| `docs/GUIA_HIBERNACULO.md` | Guía de armado del hibernáculo y de la oficina |
 
 ## Topics MQTT (base `vivero/nodo1`)
 
@@ -92,3 +89,5 @@ La primera vez la app abre en **Conexión**: completar usuario y clave de `viver
 | Conexión | Broker, puerto, equipo (`nodo1`), usuario y clave |
 
 La app se conecta por **WebSocket con TLS (puerto 8084)**.
+
+> El hibernáculo y la oficina (LoRa) están en su propio repo: [vivero-hibernaculo-oficina](https://github.com/alexis37268-cpu/vivero-hibernaculo-oficina). La app sirve para los dos.
