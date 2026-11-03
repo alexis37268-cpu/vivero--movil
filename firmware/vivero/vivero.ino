@@ -1,6 +1,6 @@
 // =============================================================
 //  Controlador de vivero - ESP32 / ESP8266 (el mismo archivo para los dos)
-//  Temperatura/humedad, venteo (motor DC con 2 reles) y riego.
+//  Temperatura/humedad, venteo (actuador con finales internos, por tiempo) y riego.
 //
 //  Idea central: TODA la logica corre en el ESP32. Internet y la
 //  app son un extra: si se cae la conexion, el vivero sigue solo.
@@ -33,7 +33,7 @@
 // -------------------------------------------------------------
 //  Tipos y estado global
 // -------------------------------------------------------------
-enum EstadoVenteo { V_DESCONOCIDO, V_CERRADO, V_ABIERTO, V_ABRIENDO, V_CERRANDO, V_ERROR };
+enum EstadoVenteo { V_DESCONOCIDO, V_CERRADO, V_ABIERTO, V_ABRIENDO, V_CERRANDO };
 
 const char* nombreVenteo(EstadoVenteo e) {
   switch (e) {
@@ -41,7 +41,6 @@ const char* nombreVenteo(EstadoVenteo e) {
     case V_ABIERTO:  return "abierto";
     case V_ABRIENDO: return "abriendo";
     case V_CERRANDO: return "cerrando";
-    case V_ERROR:    return "error";
     default:         return "desconocido";
   }
 }
@@ -49,7 +48,7 @@ const char* nombreVenteo(EstadoVenteo e) {
 struct Config {
   float    tempAbrir, tempCerrar;
   float    humRiegoOn, humRiegoOff;
-  uint16_t motorMaxS, riegoMaxMin, riegoPausaMin;
+  uint16_t recorridoS, riegoMaxMin, riegoPausaMin;   // recorridoS: lo que tarda el actuador de punta a punta (+20 %)
 };
 
 DHT              dht(PIN_DHT, DHT_TIPO);
@@ -126,9 +125,10 @@ void publicarConfig() {
   j += ",\"temp_cerrar\":"     + String(cfg.tempCerrar, 1);
   j += ",\"hum_riego_on\":"    + String(cfg.humRiegoOn, 1);
   j += ",\"hum_riego_off\":"   + String(cfg.humRiegoOff, 1);
-  j += ",\"motor_max_s\":"     + String(cfg.motorMaxS);
+  j += ",\"motor_max_s\":"     + String(cfg.recorridoS);   // la clave queda igual para no tocar la app
   j += ",\"riego_max_min\":"   + String(cfg.riegoMaxMin);
   j += ",\"riego_pausa_min\":" + String(cfg.riegoPausaMin);
+  j += ",\"recorrido\":true";                // la app muestra "Tiempo de recorrido del actuador"
   j += "}";
   publicar(t("config"), j, true);
 }
@@ -142,7 +142,7 @@ void cargarConfig() {
   cfg.tempCerrar    = prefs.getFloat("tCerrar", DEF_TEMP_CERRAR);
   cfg.humRiegoOn    = prefs.getFloat("hOn",     DEF_HUM_RIEGO_ON);
   cfg.humRiegoOff   = prefs.getFloat("hOff",    DEF_HUM_RIEGO_OFF);
-  cfg.motorMaxS     = prefs.getUShort("motMax", DEF_MOTOR_MAX_S);
+  cfg.recorridoS    = prefs.getUShort("recorr", DEF_RECORRIDO_S);
   cfg.riegoMaxMin   = prefs.getUShort("rMax",   DEF_RIEGO_MAX_MIN);
   cfg.riegoPausaMin = prefs.getUShort("rPausa", DEF_RIEGO_PAUSA_MIN);
   modoAuto          = prefs.getBool("auto", true);
@@ -155,7 +155,7 @@ void guardarConfig() {
   prefs.putFloat("tCerrar", cfg.tempCerrar);
   prefs.putFloat("hOn",     cfg.humRiegoOn);
   prefs.putFloat("hOff",    cfg.humRiegoOff);
-  prefs.putUShort("motMax", cfg.motorMaxS);
+  prefs.putUShort("recorr", cfg.recorridoS);
   prefs.putUShort("rMax",   cfg.riegoMaxMin);
   prefs.putUShort("rPausa", cfg.riegoPausaMin);
   prefs.putBool("auto",     modoAuto);
@@ -199,8 +199,6 @@ public:
   bool activo() const { return estable == LOW; }              // contacto cerrado a GND
 };
 
-Entrada eFinAbierto(PIN_FIN_ABIERTO);
-Entrada eFinCerrado(PIN_FIN_CERRADO);
 Entrada bModo(PIN_BOTON_MODO);
 Entrada bRiego(PIN_BOTON_RIEGO);
 Entrada bVenteo(PIN_BOTON_VENTEO);
@@ -209,10 +207,15 @@ Entrada bVenteo(PIN_BOTON_VENTEO);
 #endif
 
 // -------------------------------------------------------------
-//  Venteo
+//  Venteo por tiempo (actuador lineal con finales de carrera INTERNOS)
+//
+//  El ESP no sabe donde esta el actuador: solo sabe cuanto tiempo lo
+//  tuvo prendido. Abrir = rele ABRIR prendido "recorrido" segundos;
+//  el actuador se corta solo al llegar a su tope y nosotros cortamos el
+//  rele despues, para no dejarlo alimentado de mas.
+//  Por eso al arrancar CIERRA: es la unica forma de saber donde esta.
+//  Si se para a mitad de camino queda "desconocido".
 // -------------------------------------------------------------
-bool finAbierto() { return eFinAbierto.activo(); }
-bool finCerrado() { return eFinCerrado.activo(); }
 bool motorMoviendo() { return venteo == V_ABRIENDO || venteo == V_CERRANDO; }
 
 // Al invertir el giro (de abrir a cerrar o al reves) el motor queda
@@ -231,7 +234,7 @@ void motorArrancar(uint8_t pin, bool invertir) {
   motorParar();
   if (invertir) { arranquePin = pin; arranqueDesde = millis(); }   // lo prende venteoTick
   else escribirRele(pin, true);
-  motorDesde = millis();
+  motorDesde = millis() + (invertir ? TIEMPO_MUERTO_MS : 0);       // el tiempo cuenta desde que arranca de verdad
 }
 
 void setVenteo(EstadoVenteo e) {
@@ -241,58 +244,34 @@ void setVenteo(EstadoVenteo e) {
   hayCambios = true;
 }
 
-void venteoError(const String& motivo) {
-  motorParar();
-  if (venteo != V_ERROR) alarma("venteo: " + motivo);
-  setVenteo(V_ERROR);
-}
-
 void venteoAbrir() {
-  if (finAbierto()) { motorParar(); setVenteo(V_ABIERTO); return; }
-  if (venteo == V_ABRIENDO) return;
+  if (venteo == V_ABIERTO || venteo == V_ABRIENDO) return;
   motorArrancar(PIN_VENTEO_ABRIR, venteo == V_CERRANDO);
   setVenteo(V_ABRIENDO);
 }
 
 void venteoCerrar() {
-  if (finCerrado()) { motorParar(); setVenteo(V_CERRADO); return; }
-  if (venteo == V_CERRANDO) return;
+  if (venteo == V_CERRADO || venteo == V_CERRANDO) return;
   motorArrancar(PIN_VENTEO_CERRAR, venteo == V_ABRIENDO);
   setVenteo(V_CERRANDO);
 }
 
 void venteoParar() {
+  bool seMovia = motorMoviendo();
   motorParar();
-  if (finAbierto())      setVenteo(V_ABIERTO);
-  else if (finCerrado()) setVenteo(V_CERRADO);
-  else if (venteo != V_ERROR) setVenteo(V_DESCONOCIDO);
+  if (seMovia) setVenteo(V_DESCONOCIDO);   // quedo a mitad de camino
 }
 
-// Se llama en cada vuelta del loop: vigila finales de carrera y tiempos
+// Se llama en cada vuelta del loop: arranque pendiente y fin del recorrido
 void venteoTick() {
-  eFinAbierto.actualizar();
-  eFinCerrado.actualizar();
-
-  // Arranque pendiente despues del tiempo muerto
   if (arranquePin >= 0 && millis() - arranqueDesde >= TIEMPO_MUERTO_MS) {
     escribirRele((uint8_t)arranquePin, true);
     arranquePin = -1;
   }
-
-  if (finAbierto() && finCerrado()) {    // imposible fisicamente: cable o switch mal
-    venteoError("los dos finales de carrera activos");
-    return;
-  }
-  unsigned long limite = (unsigned long)cfg.motorMaxS * 1000UL;
-  if (venteo == V_ABRIENDO) {
-    if (finAbierto()) { motorParar(); setVenteo(V_ABIERTO); }
-    else if (millis() - motorDesde > limite) venteoError("no llego a ABIERTO en el tiempo maximo");
-  } else if (venteo == V_CERRANDO) {
-    if (finCerrado()) { motorParar(); setVenteo(V_CERRADO); }
-    else if (millis() - motorDesde > limite) venteoError("no llego a CERRADO en el tiempo maximo");
-  } else if (venteo == V_DESCONOCIDO) {
-    if (finAbierto())      setVenteo(V_ABIERTO);
-    else if (finCerrado()) setVenteo(V_CERRADO);
+  if (!motorMoviendo() || (long)(millis() - motorDesde) < 0) return;   // todavia en tiempo muerto
+  if (millis() - motorDesde >= (unsigned long)cfg.recorridoS * 1000UL) {
+    motorParar();
+    setVenteo(venteo == V_ABRIENDO ? V_ABIERTO : V_CERRADO);
   }
 }
 
@@ -349,12 +328,10 @@ void controlAuto() {
 
   // Venteo: abre arriba de tempAbrir, cierra abajo de tempCerrar.
   // Entre medio no hace nada (eso es la histeresis: evita que tiemble).
-  if (venteo != V_ERROR) {
-    if (temp >= cfg.tempAbrir && venteo != V_ABIERTO && venteo != V_ABRIENDO)
-      venteoAbrir();
-    else if (temp <= cfg.tempCerrar && venteo != V_CERRADO && venteo != V_CERRANDO)
-      venteoCerrar();
-  }
+  if (temp >= cfg.tempAbrir && venteo != V_ABIERTO && venteo != V_ABRIENDO)
+    venteoAbrir();
+  else if (temp <= cfg.tempCerrar && venteo != V_CERRADO && venteo != V_CERRANDO)
+    venteoCerrar();
 
   // Riego (PROVISORIO: usa humedad del aire hasta tener sensor de suelo)
   bool pausaCumplida = !riegoAlgunaVez ||
@@ -372,7 +349,7 @@ bool aplicarConfig(const String& clave, float v) {
   else if (clave == "temp_cerrar")     n.tempCerrar = v;
   else if (clave == "hum_riego_on")    n.humRiegoOn = v;
   else if (clave == "hum_riego_off")   n.humRiegoOff = v;
-  else if (clave == "motor_max_s")     n.motorMaxS = (uint16_t)v;
+  else if (clave == "motor_max_s")     n.recorridoS = (uint16_t)v;   // = tiempo de recorrido
   else if (clave == "riego_max_min")   n.riegoMaxMin = (uint16_t)v;
   else if (clave == "riego_pausa_min") n.riegoPausaMin = (uint16_t)v;
   else { alarma("config: clave desconocida " + clave); return false; }
@@ -383,7 +360,7 @@ bool aplicarConfig(const String& clave, float v) {
             n.tempCerrar <  n.tempAbrir - 0.5 &&
             n.humRiegoOn >= 0 && n.humRiegoOff <= 100 &&
             n.humRiegoOn <  n.humRiegoOff &&
-            n.motorMaxS >= 5 && n.motorMaxS <= 600 &&
+            n.recorridoS >= 5 && n.recorridoS <= 600 &&
             n.riegoMaxMin >= 1 && n.riegoMaxMin <= 120 &&
             n.riegoPausaMin <= 1440;
   if (!ok) { alarma("config: valor rechazado para " + clave); return false; }
@@ -417,7 +394,7 @@ void alRecibir(char* topic, byte* payload, unsigned int largo) {
   else if (cmd == "venteo") {
     if (msg == "parar") { venteoParar(); hayCambios = true; }   // PARAR siempre vale
     else if (modoAuto) alarma("venteo: orden ignorada, esta en automatico");
-    else if (msg == "abrir")  venteoAbrir();    // en manual tambien saca del ERROR
+    else if (msg == "abrir")  venteoAbrir();
     else if (msg == "cerrar") venteoCerrar();
   }
   else if (cmd == "riego") {
@@ -620,7 +597,7 @@ void pulsoVenteo() {
   if (motorMoviendo())           { venteoParar(); Serial.println("[VENTEO] parado con pulsador"); }
   else if (venteo == V_ABIERTO)  venteoCerrar();
   else if (venteo == V_CERRADO)  venteoAbrir();
-  else                           venteoCerrar();   // desconocido o error: lo mas seguro es cerrar
+  else                           venteoCerrar();   // desconocido (parado a mitad): lo mas seguro es cerrar
 }
 
 void botonesSetup() {
@@ -673,8 +650,6 @@ void setup() {
   motorParar();
   escribirRele(PIN_RIEGO, false);
 
-  eFinAbierto.begin();
-  eFinCerrado.begin();
   botonesSetup();
 
   // 2) Config guardada (o valores por defecto la primera vez)
@@ -682,9 +657,13 @@ void setup() {
   if (!Prefs8266::iniciar()) Serial.println("[CONFIG] no se pudo montar la flash: uso valores por defecto");
 #endif
   cargarConfig();
-  Serial.printf("[CONFIG] abrir %.1f / cerrar %.1f °C, riego %.0f-%.0f %%, modo %s\n",
+  Serial.printf("[CONFIG] abrir %.1f / cerrar %.1f °C, riego %.0f-%.0f %%, recorrido %u s, modo %s\n",
                 cfg.tempAbrir, cfg.tempCerrar, cfg.humRiegoOn, cfg.humRiegoOff,
-                modoAuto ? "auto" : "manual");
+                cfg.recorridoS, modoAuto ? "auto" : "manual");
+
+  // Sin finales de carrera no sabemos donde quedo el venteo: lo cerramos
+  // de punta a punta para arrancar sabiendo la posicion.
+  venteoCerrar();
 
   dht.begin();
 

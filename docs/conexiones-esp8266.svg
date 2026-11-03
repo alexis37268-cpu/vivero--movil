@@ -3,7 +3,7 @@
 
   <!-- Titulo -->
   <text x="80" y="62" font-size="34" font-weight="bold" fill="#1b2a20">Vivero Sol Puntano — Conexiones con NodeMCU ESP8266 (prueba)</text>
-  <text x="80" y="96" font-size="18" fill="#55645a">NodeMCU ESP8266 + DHT11 + módulo de 3 relés + 2 finales de carrera. Para el equipo final va el ESP32.</text>
+  <text x="80" y="96" font-size="18" fill="#55645a">NodeMCU ESP8266 + DHT11 + módulo de 3 relés + 3 pulsadores. Para el equipo final va el ESP32.</text>
 
   <!-- ================= ESP32 ================= -->
   <rect x="80" y="170" width="300" height="710" rx="14" fill="#20303a" stroke="#0f1a20" stroke-width="3"/>
@@ -25,13 +25,11 @@
     <text x="365" y="506">D1</text>
     <text x="365" y="556">D2</text>
     <text x="365" y="606">D0</text>
-    <text x="365" y="696">D6</text>
-    <text x="365" y="746">D7</text>
   </g>
   <g fill="#d9d9d9" stroke="#555" stroke-width="2">
     <circle cx="380" cy="240" r="7"/><circle cx="380" cy="290" r="7"/><circle cx="380" cy="340" r="7"/>
     <circle cx="380" cy="420" r="7"/><circle cx="380" cy="500" r="7"/><circle cx="380" cy="550" r="7"/>
-    <circle cx="380" cy="600" r="7"/><circle cx="380" cy="690" r="7"/><circle cx="380" cy="740" r="7"/>
+    <circle cx="380" cy="600" r="7"/>
   </g>
 
   <!-- ================= CABLES ================= -->
@@ -44,21 +42,16 @@
     <path d="M387 340 H700 V430 H993" stroke="#ef6c00"/>
     <!-- GND bus -->
     <path d="M387 290 H900" stroke="#111"/>
-    <path d="M900 280 V870 H1160 V690" stroke="#111"/>
+    <path d="M900 280 V815" stroke="#111"/>
     <path d="M900 280 H993" stroke="#111"/>
     <path d="M900 465 H993" stroke="#111"/>
-    <path d="M1130 690 H1160" stroke="#111"/>
-    <path d="M1130 740 H1160" stroke="#111"/>
     <!-- señales a reles -->
     <path d="M387 500 H993" stroke="#1565c0"/>
     <path d="M387 550 H993" stroke="#6a1b9a"/>
     <path d="M387 600 H993" stroke="#00838f"/>
-    <!-- finales de carrera -->
-    <path d="M387 690 H1000" stroke="#c2185b"/>
-    <path d="M387 740 H1000" stroke="#795548"/>
   </g>
   <!-- empalmes del GND -->
-  <g fill="#111"><circle cx="900" cy="290" r="8"/><circle cx="900" cy="465" r="8"/><circle cx="1160" cy="740" r="8"/></g>
+  <g fill="#111"><circle cx="900" cy="290" r="8"/><circle cx="900" cy="465" r="8"/></g>
 
   <!-- ================= DHT11 ================= -->
   <rect x="1000" y="160" width="220" height="150" rx="10" fill="#4fa3e0" stroke="#1f6fa8" stroke-width="3"/>
@@ -88,18 +81,10 @@
   <text x="1320" y="436" font-size="14" fill="#55645a">Por USB, el VIN del NodeMCU da 5 V</text>
   <text x="1320" y="456" font-size="14" fill="#55645a">del módulo de relés.</text>
 
-  <!-- ================= FINALES DE CARRERA ================= -->
-  <g stroke="#333" stroke-width="4" fill="none" stroke-linecap="round">
-    <line x1="1000" y1="690" x2="1040" y2="690"/><line x1="1040" y1="690" x2="1095" y2="672"/><line x1="1100" y1="690" x2="1130" y2="690"/>
-    <line x1="1000" y1="740" x2="1040" y2="740"/><line x1="1040" y1="740" x2="1095" y2="722"/><line x1="1100" y1="740" x2="1130" y2="740"/>
-  </g>
-  <g fill="#ffffff" stroke="#333" stroke-width="3"><circle cx="1040" cy="690" r="5"/><circle cx="1100" cy="690" r="5"/><circle cx="1040" cy="740" r="5"/><circle cx="1100" cy="740" r="5"/></g>
-  <g font-size="17" font-weight="bold">
-    <text x="1190" y="696" fill="#c2185b">FIN ABIERTO (NA) → D6</text>
-    <text x="1190" y="746" fill="#795548">FIN CERRADO (NA) → D7</text>
-  </g>
-  <text x="1190" y="772" font-size="14" fill="#55645a">Al pisarse cierra a GND. Sin resistencia:</text>
-  <text x="1190" y="790" font-size="14" fill="#55645a">el NodeMCU usa su pull-up interna.</text>
+  <!-- ================= VENTEO ================= -->
+  <text x="1000" y="696" font-size="17" font-weight="bold" fill="#1565c0">Venteo SIN finales de carrera externos</text>
+  <text x="1000" y="722" font-size="15" fill="#55645a">Actuador lineal con finales internos: el ESP lo maneja por tiempo</text>
+  <text x="1000" y="744" font-size="15" fill="#55645a">(tiempo de recorrido, se ajusta en la app). Al arrancar cierra. D6 y D7 libres.</text>
 
 
   <text x="365" y="791" font-size="17" font-weight="bold" fill="#ffffff" text-anchor="end">D4</text>

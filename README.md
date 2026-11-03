@@ -1,6 +1,6 @@
 # Vivero Sol Puntano — controlador de vivero (ESP32 + MQTT + app)
 
-Controla temperatura/humedad, venteo (motor DC con 2 relés + finales de carrera) y riego.
+Controla temperatura/humedad, venteo (actuador lineal con finales internos, manejado por tiempo con 2 relés) y riego.
 Toda la lógica corre en el ESP32; el broker MQTT (EMQX Serverless) y la app son para ver y mandar órdenes desde cualquier lado.
 
 ```
@@ -26,19 +26,19 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 | `vivero/nodo1/config` | sí | JSON con los setpoints actuales |
 | `vivero/nodo1/alarma` | no | Texto con el problema (sensor caído, motor sin llegar, etc.) |
 
-`venteo` puede ser: `cerrado`, `abierto`, `abriendo`, `cerrando`, `desconocido`, `error`.
+`venteo` puede ser: `cerrado`, `abierto`, `abriendo`, `cerrando`, `desconocido` (parado a mitad de camino).
 
 **Órdenes que recibe** (`vivero/nodo1/cmd/...`)
 | Topic | Mensaje | Nota |
 |---|---|---|
 | `cmd/modo` | `auto` / `manual` | Queda guardado |
-| `cmd/venteo` | `abrir` / `cerrar` / `parar` | `abrir`/`cerrar` solo en manual (y sacan del `error`). `parar` vale siempre |
+| `cmd/venteo` | `abrir` / `cerrar` / `parar` | `abrir`/`cerrar` solo en manual. `parar` vale siempre |
 | `cmd/riego` | `on` / `off` | `on` solo en manual. `off` vale siempre |
 | `cmd/config/temp_abrir` | número | °C (por defecto 28) |
 | `cmd/config/temp_cerrar` | número | °C (por defecto 24), tiene que ser menor que `temp_abrir` |
 | `cmd/config/hum_riego_on` | número | % (por defecto 40) |
 | `cmd/config/hum_riego_off` | número | % (por defecto 60) |
-| `cmd/config/motor_max_s` | número | s (por defecto 60) |
+| `cmd/config/motor_max_s` | número | tiempo de recorrido del actuador, s (por defecto 40) |
 | `cmd/config/riego_max_min` | número | min (por defecto 10) |
 | `cmd/config/riego_pausa_min` | número | min (por defecto 30) |
 | `cmd/estado` | cualquier cosa | Pide el estado al instante |
@@ -55,18 +55,14 @@ Los valores fuera de rango se rechazan y se avisa por `alarma`.
 6. Play. En el monitor serie tiene que aparecer `[MQTT] conectando al broker... OK`.
 7. En MQTTX suscribirse a `vivero/#` y ver llegar el estado.
 
-### Los switches (finales de carrera simulados)
-- **Palanquita a la IZQUIERDA = apretado** (el venteo llegó ahí). **A la DERECHA = suelto.**
-- Arranca así: arriba (FIN ABIERTO) a la derecha, abajo (FIN CERRADO) a la izquierda → venteo **cerrado**.
-- Nunca los dos a la izquierda: el ESP32 lo toma como falla y pasa a `error`.
-- En la simulación **vos sos el mecanismo**: cuando se prende un LED, movés los switches como se movería el venteo:
-  - **Abriendo (LED verde):** primero abajo → derecha, después arriba → izquierda.
-  - **Cerrando (LED rojo):** primero arriba → derecha, después abajo → izquierda.
-  - Si no lo hacés en 60 s, salta la protección de tiempo y queda en `error` (se sale con `manual` + `abrir`/`cerrar`).
+### El venteo (sin finales de carrera)
+- Va **por tiempo**: el relé queda prendido el *tiempo de recorrido* (40 s por defecto) y se corta solo. En el equipo real el actuador tiene finales internos.
+- Al arrancar **cierra** (LED rojo 40 s) para saber dónde está.
+- Si lo parás a mitad de camino, el estado queda `desconocido`.
 
 ### Prueba del automático
-1. Sensor DHT a 30 °C → LED verde, `abriendo` → mover switches → `abierto`.
-2. Sensor a 20 °C → LED rojo, `cerrando` → mover switches → `cerrado`.
+1. Sensor DHT a 30 °C → LED verde, `abriendo` → a los 40 s `abierto`.
+2. Sensor a 20 °C → LED rojo, `cerrando` → a los 40 s `cerrado`.
 3. Entre 24 y 28 °C no hace nada (histéresis).
 
 ### Si se desconecta del broker

@@ -51,8 +51,7 @@
   #define PIN_VENTEO_ABRIR   5     // D1
   #define PIN_VENTEO_CERRAR  4     // D2
   #define PIN_RIEGO          16    // D0
-  #define PIN_FIN_ABIERTO    12    // D6
-  #define PIN_FIN_CERRADO    13    // D7
+  // D6 y D7 quedan libres (antes eran los finales de carrera)
   // Pulsadores del tablero (a GND, sin resistencias: pull-up interna)
   #define PIN_BOTON_MODO     0     // boton FLASH de la placa: toque = modo, 5 s = portal
   #define PIN_BOTON_RIEGO    2     // D4 - ojo: no arrancar la placa con este apretado
@@ -67,8 +66,6 @@
   #define PIN_VENTEO_ABRIR   25
   #define PIN_VENTEO_CERRAR  26
   #define PIN_RIEGO          27
-  #define PIN_FIN_ABIERTO    13
-  #define PIN_FIN_CERRADO    14
   // Pines reservados para el futuro en el ESP32 (NO usar):
   //   32, 34, 35, 36, 39 -> sensores de humedad de suelo (ADC1, andan con WiFi)
   //   5, 18, 19, 23 -> modulo LoRa (SPI)
@@ -91,11 +88,11 @@
   #define RELE_ACTIVO_ALTO false
 #endif
 
-// Finales de carrera: contacto a GND cuando esta pisado (se usa pull-up interno).
-// En el ESP8266, D0 no tiene pull-up: por eso ahi va un rele y no un final de carrera.
+// Pulsadores: contacto a GND al apretar (se usa pull-up interno).
+// En el ESP8266, D0 no tiene pull-up: por eso ahi va un rele y no un pulsador.
 
 // ---------- Tiempos ----------
-#define ANTIRREBOTE_MS           50UL      // pulsadores y finales de carrera: estable 50 ms = cambio real
+#define ANTIRREBOTE_MS           50UL      // pulsadores: estable 50 ms = cambio real
 #define TIEMPO_MUERTO_MS         300UL     // motor parado antes de invertir el giro
 #define INTERVALO_LECTURA_MS     5000UL    // cada cuanto lee el sensor
 #define INTERVALO_PUBLICACION_MS 30000UL   // cada cuanto publica (cuida la cuota gratis)
@@ -107,6 +104,6 @@
 #define DEF_TEMP_CERRAR     24.0   // °C: cierra el venteo (histeresis = 4 °C)
 #define DEF_HUM_RIEGO_ON    40.0   // %: debajo de esto empieza a regar
 #define DEF_HUM_RIEGO_OFF   60.0   // %: arriba de esto deja de regar
-#define DEF_MOTOR_MAX_S     60     // s: si el motor no llega al final de carrera -> ERROR
+#define DEF_RECORRIDO_S     40     // s: lo que tarda el actuador de punta a punta + 20 % (medirlo)
 #define DEF_RIEGO_MAX_MIN   10     // min: corte de seguridad del riego
 #define DEF_RIEGO_PAUSA_MIN 30     // min: espera minima entre riegos automaticos

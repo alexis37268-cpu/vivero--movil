@@ -81,28 +81,6 @@
       }
     },
     {
-      "type": "wokwi-slide-switch",
-      "id": "finAbierto",
-      "top": 230,
-      "left": -120,
-      "attrs": {
-        "label": "FIN ABIERTO",
-        "value": "1",
-        "bounce": "0"
-      }
-    },
-    {
-      "type": "wokwi-slide-switch",
-      "id": "finCerrado",
-      "top": 290,
-      "left": -120,
-      "attrs": {
-        "label": "FIN CERRADO",
-        "value": "",
-        "bounce": "0"
-      }
-    },
-    {
       "type": "wokwi-pushbutton",
       "id": "bModo",
       "top": 180,
@@ -214,30 +192,6 @@
     ],
     [
       "ledRiego:C",
-      "esp:GND.1",
-      "black",
-      []
-    ],
-    [
-      "finAbierto:2",
-      "esp:13",
-      "orange",
-      []
-    ],
-    [
-      "finAbierto:1",
-      "esp:GND.1",
-      "black",
-      []
-    ],
-    [
-      "finCerrado:2",
-      "esp:14",
-      "violet",
-      []
-    ],
-    [
-      "finCerrado:1",
       "esp:GND.1",
       "black",
       []
