@@ -44,6 +44,7 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 | `cmd/config/riego_pausa_min` | número | min (por defecto 30) |
 | `cmd/estado` | cualquier cosa | Pide el estado al instante |
 | `cmd/historial` | cualquier cosa | Pide el historial para el gráfico de la app |
+| `cmd/config/clima_cierra` | `1` / `0` | Con alerta del SMN de viento, tormenta o granizo: cerrar el venteo (1, por defecto) o solo avisar (0) |
 
 Los valores fuera de rango se rechazan y se avisa por `alarma`.
 
@@ -89,3 +90,25 @@ La primera vez la app abre en **Conexión**: completar usuario y clave de `viver
 La app se conecta por **WebSocket con TLS (puerto 8084)**.
 
 > El hibernáculo y la oficina (LoRa) están en su propio repo: [vivero-hibernaculo-oficina](https://github.com/alexis37268-cpu/vivero-hibernaculo-oficina). La app sirve para los dos.
+
+## Alertas meteorológicas (SMN)
+
+Un robot en GitHub Actions (`robot/alertas_smn.py`, workflow **Alertas SMN**) corre cada 15 min:
+lee los avisos oficiales del SMN (feed CAP, datos abiertos CC BY 4.0), se queda con los que cubren la
+ubicación del vivero y publica en el broker, retenidos:
+
+| Topic | Contenido | Lo usa |
+|---|---|---|
+| `vivero/clima/alerta` | JSON con las alertas vigentes (evento, nivel amarillo/naranja/rojo, desde, hasta, texto) | la app: cartel en Inicio y lista de Alarmas |
+| `vivero/clima/cierre` | hora (epoch) hasta la que hay que cerrar el venteo, `0` = no | el ESP: en automático cierra y no abre hasta esa hora |
+
+Cierran el venteo: tormentas, viento, Zonda, granizo y nevadas, desde 30 min antes de que empiecen.
+
+**Para que publique** (sin esto corre igual, pero solo muestra el resultado en el registro):
+1. En EMQX, crear un usuario `vivero-robot` con su clave.
+2. En GitHub → Settings → Secrets and variables → Actions:
+   - *Secrets*: `MQTT_USER` = `vivero-robot`, `MQTT_PASS` = la clave.
+   - *Variables*: `VIVERO_LAT` y `VIVERO_LON` = coordenadas del vivero (por defecto: ciudad de San Luis).
+
+Prueba con avisos reales guardados: `python3 robot/prueba_alertas.py`.
+GitHub pausa los workflows programados de un repo público después de 60 días sin cambios: si pasa, se reactiva desde la pestaña Actions.

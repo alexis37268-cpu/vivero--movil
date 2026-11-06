@@ -1,0 +1,45 @@
+# Robot de alertas meteorologicas del SMN para el vivero.
+# Corre solo cada 15 min (GitHub a veces lo atrasa unos minutos) y tambien a mano
+# desde la pestana Actions > "Alertas SMN" > Run workflow.
+name: Alertas SMN
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  push:
+    paths: ['robot/**', '.github/workflows/alertas.yml']
+concurrency:
+  group: alertas-smn          # nunca dos a la vez (el SMN limita los pedidos)
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  alertas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install "paho-mqtt>=2,<3"
+      - name: Probar el lector con avisos guardados
+        run: python3 robot/prueba_alertas.py
+      # Cache: los avisos ya leidos no se vuelven a bajar (cuida el limite del SMN)
+      - uses: actions/cache/restore@v4
+        with:
+          path: cache-alertas.json
+          key: alertas-${{ github.run_id }}
+          restore-keys: alertas-
+      - name: Leer el SMN y publicar
+        env:
+          VIVERO_LAT: ${{ vars.VIVERO_LAT }}
+          VIVERO_LON: ${{ vars.VIVERO_LON }}
+          MQTT_USER: ${{ secrets.MQTT_USER }}
+          MQTT_PASS: ${{ secrets.MQTT_PASS }}
+        run: python3 robot/alertas_smn.py
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: cache-alertas.json
+          key: alertas-${{ github.run_id }}

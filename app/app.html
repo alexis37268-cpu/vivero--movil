@@ -88,6 +88,18 @@
   .leyenda{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:6px}
   .leyenda b{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
   .leyenda .t b{border-color:var(--rojo)} .leyenda .h b{border-color:var(--azul)} .leyenda .sp b{border-top-style:dashed;border-color:var(--muted)}
+  .clima{border-radius:14px;padding:12px 14px;margin-bottom:12px;border:1px solid;cursor:pointer}
+  .clima.amarillo{background:#fff6cc;border-color:#e8c200;color:#5c4a00}
+  .clima.naranja{background:#ffe3c7;border-color:#f08a24;color:#6b3300}
+  .clima.rojo{background:#ffd9d6;border-color:#d93025;color:#6e0f08}
+  .clima.otro{background:var(--card);border-color:var(--line);color:var(--ink)}
+  .clima .al+.al{margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.12)}
+  .clima b{display:block;font-size:15px}
+  .clima small{display:block;font-size:13px;opacity:.85}
+  .clima p{margin:6px 0 0;font-size:13px}
+  .clima .fuente{font-size:11px;opacity:.7;margin-top:8px}
+  .interruptor{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;color:var(--ink);margin:0}
+  .interruptor input{width:auto;transform:scale(1.4);accent-color:var(--verde)}
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
 </style>
@@ -103,6 +115,7 @@
 
   <!-- ============ INICIO ============ -->
   <section id="v-inicio" class="vista on">
+    <div class="clima" id="clima" hidden role="status" aria-live="polite"></div>
     <div class="equipos" id="equipos" role="tablist" aria-label="Equipo"></div>
     <div class="grande">
       <div class="medida"><small>Temperatura</small><div class="v" id="temp">--<span>°C</span></div></div>
@@ -179,6 +192,12 @@
       <div class="doble">
         <div><label for="riego_max_min">Riego máximo (min)</label><input id="riego_max_min" type="number" step="1" inputmode="numeric"></div>
         <div><label for="riego_pausa_min">Pausa entre riegos (min)</label><input id="riego_pausa_min" type="number" step="1" inputmode="numeric"></div>
+      </div>
+      <div id="clima-ajuste" hidden>
+        <h2 style="margin-top:18px">Alertas del clima</h2>
+        <label class="interruptor" for="clima_cierra">Cerrar el venteo con alerta de viento, tormenta o granizo
+          <input id="clima_cierra" type="checkbox"></label>
+        <p class="nota">Alertas oficiales del SMN para la zona del vivero. Funciona solo en automático; en manual solo avisa.</p>
       </div>
       <p class="nota" id="ajustes-nota">Los valores quedan guardados en el equipo, aunque se corte la luz.</p>
       <div class="botones dos">
@@ -293,6 +312,7 @@
       pill('ok', 'En línea');
       $('#c-detalle').textContent = 'Conectado a ' + cfg.host + ' como ' + cfg.user + '.';
       cliente.subscribe(['vivero/+/online', 'vivero/+/nombre'], { qos: 1 });   // para descubrir los equipos
+      cliente.subscribe('vivero/clima/alerta', { qos: 1 });                     // alertas del SMN (robot)
       suscribirNodo();
       ordenar('estado', '1');  // pide el estado al instante
     });
@@ -364,6 +384,7 @@
     const m = topic.match(/^vivero\/([^/]+)\/(.+)$/);
     if (!m) return;
     const id = m[1];
+    if (id === 'clima') { if (m[2] === 'alerta') try { climaRecibir(JSON.parse(txt)); } catch (e) {} return; }
     if (m[2] === 'online' || m[2] === 'nombre') {
       if (id === 'oficina') return;
       const n = nodos[id] || (nodos[id] = {});
@@ -408,7 +429,7 @@
 
     if (!s) return;
     const v = NOMBRE_VENTEO[s.venteo] || [s.venteo, ''];
-    poner('venteo', v[0], v[1]);
+    poner('venteo', v[0] + (s.clima_cierre ? ' (alerta SMN)' : ''), s.clima_cierre ? 'rojo' : v[1]);
     poner('riego', s.riego === 'on' ? 'Regando' : 'Apagado', s.riego === 'on' ? 'azul' : '');
     poner('sensor', s.sensor_ok ? 'OK' : 'Sin lectura', s.sensor_ok ? 'verde' : 'rojo');
 
@@ -580,6 +601,61 @@
   window.addEventListener('resize', dibujar);
   setInterval(dibujar, 60e3);                      // corre el eje de tiempo aunque no lleguen datos
 
+
+  // ---------- Alertas meteorológicas (SMN) ----------
+  // Las publica el robot de GitHub cada 15 min en vivero/clima/alerta (retenido).
+  let clima = null, climaAbierto = false;
+  const vistasClima = new Set(leer('dm.climaVistas', []));
+  const NIVEL_TXT = { amarillo: 'Alerta amarilla', naranja: 'Alerta naranja', rojo: 'Alerta roja', otro: 'Aviso' };
+  const horaCorta = (ep) => new Date(ep * 1000).toLocaleString('es-AR', { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+
+  function climaRecibir(c){
+    clima = c;
+    (c.alertas || []).forEach(a => {                 // cada alerta nueva va una vez a la lista de Alarmas
+      if (vistasClima.has(a.id)) return;
+      vistasClima.add(a.id);
+      alarmas.unshift({ t: Date.now(), m: '🌩 ' + NIVEL_TXT[a.nivel] + ' del SMN: ' + a.evento + ' hasta ' + horaCorta(a.hasta) });
+      alarmas = alarmas.slice(0, 50);
+      if (!$('#v-alarmas').classList.contains('on')) noLeidas++;
+      avisar('🌩 ' + NIVEL_TXT[a.nivel] + ': ' + a.evento);
+    });
+    guardar('dm.climaVistas', Array.from(vistasClima).slice(-100));
+    guardar('dm.alarmas', alarmas); pintarAlarmas(); pintarBadge();
+    pintarClima();
+  }
+  function pintarClima(){
+    const b = $('#clima'), ahora = Date.now() / 1000;
+    const vig = clima ? (clima.alertas || []).filter(a => a.hasta > ahora) : [];
+    b.hidden = !vig.length;
+    if (!vig.length) return;
+    const orden = { rojo: 3, naranja: 2, amarillo: 1, otro: 0 };
+    const peor = vig.reduce((x, a) => orden[a.nivel] > orden[x] ? a.nivel : x, 'otro');
+    b.className = 'clima ' + peor;
+    b.innerHTML = '';
+    vig.forEach(a => {
+      const d = document.createElement('div'); d.className = 'al';
+      const t = document.createElement('b'); t.textContent = '⚠ ' + NIVEL_TXT[a.nivel] + ': ' + a.evento;
+      const h = document.createElement('small');
+      h.textContent = (a.desde > ahora ? 'Desde ' + horaCorta(a.desde) + ' · ' : '') + 'Hasta ' + horaCorta(a.hasta) +
+                      (a.cierra ? ' · cierra el venteo' : '');
+      d.append(t, h);
+      if (climaAbierto) { const p = document.createElement('p'); p.textContent = a.texto; d.append(p); }
+      b.append(d);
+    });
+    const f = document.createElement('div'); f.className = 'fuente';
+    const viejo = ahora - clima.actualizado > 3600;
+    f.textContent = (climaAbierto ? '' : 'Tocá para ver el detalle · ') + 'Fuente: SMN' +
+                    (viejo ? ' · sin actualizar desde ' + horaCorta(clima.actualizado) : '');
+    b.append(f);
+  }
+  $('#clima').addEventListener('click', () => { climaAbierto = !climaAbierto; pintarClima(); });
+  setInterval(pintarClima, 60e3);                  // que desaparezca sola cuando vence
+
+  $('#clima_cierra').addEventListener('change', (e) => {
+    if (ordenar('config/clima_cierra', e.target.checked ? 1 : 0))
+      avisar(e.target.checked ? 'Con alerta se va a cerrar el venteo' : 'Las alertas solo van a avisar');
+  });
+
   // ---------- Ajustes ----------
   // Mismos límites que valida el ESP32 (si no, lo rechaza y manda alarma)
   const CAMPOS = ['temp_abrir','temp_cerrar','motor_max_s','hum_riego_on','hum_riego_off','riego_max_min','riego_pausa_min'];
@@ -591,6 +667,8 @@
     if (!cfgEquipo) { $('#ajustes-nota').textContent = 'Todavía no llegaron los valores del equipo.'; return; }
     CAMPOS.forEach(k => { $('#' + k).value = cfgEquipo[k]; });
     $('#lbl-motor').textContent = cfgEquipo.recorrido ? 'Tiempo de recorrido del actuador (s)' : 'Tiempo máximo del motor (s)';
+    $('#clima-ajuste').hidden = cfgEquipo.clima_cierra === undefined;      // equipos viejos u hibernáculo
+    $('#clima_cierra').checked = cfgEquipo.clima_cierra === 1;
     $('#ajustes-nota').textContent = 'Los valores quedan guardados en el equipo, aunque se corte la luz.';
   }
   $('#ajustes-recargar').addEventListener('click', () => { ordenar('estado', '1'); cargarAjustes(); });

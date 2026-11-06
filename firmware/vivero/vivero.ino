@@ -48,7 +48,8 @@ const char* nombreVenteo(EstadoVenteo e) {
 struct Config {
   float    tempAbrir, tempCerrar;
   float    humRiegoOn, humRiegoOff;
-  uint16_t recorridoS, riegoMaxMin, riegoPausaMin;   // recorridoS: lo que tarda el actuador de punta a punta (+20 %)
+  uint16_t recorridoS, riegoMaxMin, riegoPausaMin;
+  uint16_t climaCierra;          // 1 = con alerta del SMN de viento/tormenta se cierra el venteo   // recorridoS: lo que tarda el actuador de punta a punta (+20 %)
 };
 
 DHT              dht(PIN_DHT, DHT_TIPO);
@@ -88,6 +89,11 @@ char mqttUser[40] = MQTT_USER;
 char mqttPass[64] = MQTT_PASS;
 bool hayCambios = false;       // algo cambio -> publicar estado ya
 
+// Alerta meteorologica: el robot del SMN publica hasta cuando cerrar (0 = no hay)
+uint32_t cierreHasta = 0;
+bool     cierreAvisado = false;
+bool     climaCierreActivo();
+
 // Arma un topic: t("estado") -> "vivero/nodo1/estado"
 String t(const char* sub) { return String(TOPIC_BASE "/") + sub; }
 
@@ -116,6 +122,7 @@ void publicarEstado() {
   j += ",\"modo\":\""   + String(modoAuto ? "auto" : "manual") + "\"";
   j += ",\"rssi\":"     + String(WiFi.RSSI());
   j += ",\"uptime_s\":" + String(millis() / 1000);
+  j += ",\"clima_cierre\":" + String(climaCierreActivo() ? "true" : "false");
   j += "}";
   publicar(t("estado"), j, true);        // retenido: la app ve el ultimo al abrir
   hayCambios = false;
@@ -132,6 +139,7 @@ void publicarConfig() {
   j += ",\"riego_pausa_min\":" + String(cfg.riegoPausaMin);
   j += ",\"recorrido\":true";                // la app muestra "Tiempo de recorrido del actuador"
   j += ",\"hist\":true";                     // este equipo guarda historial para el grafico
+  j += ",\"clima_cierra\":" + String(cfg.climaCierra);
   j += "}";
   publicar(t("config"), j, true);
 }
@@ -148,6 +156,7 @@ void cargarConfig() {
   cfg.recorridoS    = prefs.getUShort("recorr", DEF_RECORRIDO_S);
   cfg.riegoMaxMin   = prefs.getUShort("rMax",   DEF_RIEGO_MAX_MIN);
   cfg.riegoPausaMin = prefs.getUShort("rPausa", DEF_RIEGO_PAUSA_MIN);
+  cfg.climaCierra   = prefs.getUShort("climaC", 1);
   modoAuto          = prefs.getBool("auto", true);
   prefs.end();
 }
@@ -161,6 +170,7 @@ void guardarConfig() {
   prefs.putUShort("recorr", cfg.recorridoS);
   prefs.putUShort("rMax",   cfg.riegoMaxMin);
   prefs.putUShort("rPausa", cfg.riegoPausaMin);
+  prefs.putUShort("climaC", cfg.climaCierra);
   prefs.putBool("auto",     modoAuto);
   prefs.end();
 }
@@ -440,17 +450,43 @@ void publicarHistorial() {
 }
 
 // -------------------------------------------------------------
+//  Alerta meteorologica (la manda el robot del SMN por MQTT)
+// -------------------------------------------------------------
+bool climaCierreActivo() {
+  if (!cfg.climaCierra || !cierreHasta) return false;
+  uint32_t ahora = ahoraEpoch();
+  return ahora == 0 || ahora < cierreHasta;   // sin hora de internet: se confia en el robot
+}
+
+// -------------------------------------------------------------
 //  Logica automatica (con histeresis)
 // -------------------------------------------------------------
 void controlAuto() {
+  // Alerta del SMN (viento, tormenta, granizo): manda sobre la temperatura.
+  // En automatico cierra; en manual solo avisa (decide el operario).
+  bool cierre = climaCierreActivo();
+  if (cierre && !cierreAvisado) {
+    cierreAvisado = true;
+    time_t h = cierreHasta; struct tm tl; localtime_r(&h, &tl);
+    char txt[96];
+    snprintf(txt, sizeof(txt), modoAuto ? "alerta SMN: se cierra el venteo hasta las %02d:%02d"
+                                        : "alerta SMN: conviene cerrar el venteo (esta en manual) hasta las %02d:%02d",
+             tl.tm_hour, tl.tm_min);
+    alarma(txt);
+    hayCambios = true;
+  }
+  if (!cierre && cierreAvisado) { cierreAvisado = false; hayCambios = true; Serial.println("[CLIMA] termino la alerta"); }
+
   if (!modoAuto) return;
+  if (cierre && venteo != V_CERRADO && venteo != V_CERRANDO) venteoCerrar();
 
   // Sin sensor no se decide nada: riego apagado, venteo queda donde esta
   if (!sensorOk) { riegoSet(false, "sensor caido"); return; }
 
   // Venteo: abre arriba de tempAbrir, cierra abajo de tempCerrar.
   // Entre medio no hace nada (eso es la histeresis: evita que tiemble).
-  if (temp >= cfg.tempAbrir && venteo != V_ABIERTO && venteo != V_ABRIENDO)
+  if (cierre) { /* con alerta no se abre */ }
+  else if (temp >= cfg.tempAbrir && venteo != V_ABIERTO && venteo != V_ABRIENDO)
     venteoAbrir();
   else if (temp <= cfg.tempCerrar && venteo != V_CERRADO && venteo != V_CERRANDO)
     venteoCerrar();
@@ -474,6 +510,7 @@ bool aplicarConfig(const String& clave, float v) {
   else if (clave == "motor_max_s")     n.recorridoS = (uint16_t)v;   // = tiempo de recorrido
   else if (clave == "riego_max_min")   n.riegoMaxMin = (uint16_t)v;
   else if (clave == "riego_pausa_min") n.riegoPausaMin = (uint16_t)v;
+  else if (clave == "clima_cierra")    n.climaCierra = (uint16_t)v;
   else { alarma("config: clave desconocida " + clave); return false; }
 
   // Validaciones: un valor absurdo no entra
@@ -484,12 +521,14 @@ bool aplicarConfig(const String& clave, float v) {
             n.humRiegoOn <  n.humRiegoOff &&
             n.recorridoS >= 5 && n.recorridoS <= 600 &&
             n.riegoMaxMin >= 1 && n.riegoMaxMin <= 120 &&
-            n.riegoPausaMin <= 1440;
+            n.riegoPausaMin <= 1440 &&
+            n.climaCierra <= 1;
   if (!ok) { alarma("config: valor rechazado para " + clave); return false; }
 
   cfg = n;
   guardarConfig();
   publicarConfig();
+  if (clave == "clima_cierra") { cierreAvisado = false; controlAuto(); hayCambios = true; }
   Serial.printf("[CONFIG] %s = %.1f\n", clave.c_str(), v);
   return true;
 }
@@ -500,6 +539,14 @@ void alRecibir(char* topic, byte* payload, unsigned int largo) {
   for (unsigned int i = 0; i < largo; i++) msg += (char)payload[i];
   msg.trim(); msg.toLowerCase();
   Serial.printf("[MQTT] <- %s : %s\n", topic, msg.c_str());
+
+  if (tp == "vivero/clima/cierre") {        // del robot de alertas del SMN
+    cierreHasta = (uint32_t)msg.toInt();
+    Serial.printf("[CLIMA] cierre de venteo hasta %lu\n", (unsigned long)cierreHasta);
+    controlAuto();
+    hayCambios = true;
+    return;
+  }
 
   String base = t("cmd/");
   if (!tp.startsWith(base)) return;
@@ -579,6 +626,7 @@ void mqttTick() {
     publicar(t("online"), "online", true);
     publicar(t("nombre"), NODO_NOMBRE, true);
     mqtt.subscribe(t("cmd/#").c_str(), 1);
+    mqtt.subscribe("vivero/clima/cierre", 1);   // alertas del SMN (lo publica el robot)
     publicarConfig();
     publicarEstado();
   } else {
