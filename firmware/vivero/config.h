@@ -99,6 +99,12 @@
 #define REINTENTO_CONEXION_MS    10000UL   // espera entre intentos de conectar al broker
 #define FALLOS_SENSOR_MAX        3         // lecturas fallidas seguidas = sensor caido
 
+// ---------- Historial para el grafico de la app ----------
+#define HIST_N            288    // puntos guardados: 288 x 10 min = 48 h
+#define HIST_PASO_S       600    // un punto (promedio) cada 10 min
+#define HIST_GRABAR_CADA  6      // se graba en la flash cada 6 puntos = 1 h
+#define HIST_POR_MENSAJE  48     // puntos por mensaje MQTT (se manda en partes)
+
 // ---------- Valores por defecto (se cambian desde MQTT y quedan guardados) ----------
 #define DEF_TEMP_ABRIR      28.0   // °C: abre el venteo
 #define DEF_TEMP_CERRAR     24.0   // °C: cierra el venteo (histeresis = 4 °C)

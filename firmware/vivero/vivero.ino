@@ -73,6 +73,8 @@ unsigned long riegoDesde = 0, riegoFinUltimo = 0;
 bool          riegoAlgunaVez = false;
 
 float   temp = NAN, hum = NAN;
+float   sumT = 0, sumH = 0;   // suma de lecturas para el promedio del historial
+uint16_t nProm = 0;
 bool    sensorOk = false;
 uint8_t fallosSensor = 0;
 
@@ -129,6 +131,7 @@ void publicarConfig() {
   j += ",\"riego_max_min\":"   + String(cfg.riegoMaxMin);
   j += ",\"riego_pausa_min\":" + String(cfg.riegoPausaMin);
   j += ",\"recorrido\":true";                // la app muestra "Tiempo de recorrido del actuador"
+  j += ",\"hist\":true";                     // este equipo guarda historial para el grafico
   j += "}";
   publicar(t("config"), j, true);
 }
@@ -314,7 +317,126 @@ void leerSensor() {
   }
   fallosSensor = 0;
   temp = tt; hum = hh;
+  sumT += tt; sumH += hh; nProm++;        // para el promedio del historial
   if (!sensorOk) { sensorOk = true; hayCambios = true; }
+}
+
+// -------------------------------------------------------------
+//  Historial para el grafico de la app (ultimas 48 h)
+//
+//  Cada 10 min se guarda el PROMEDIO de las lecturas de ese rato
+//  (una cada 5 s = ~120 lecturas), asi la curva sale prolija.
+//  Es un "buffer circular": cuando se llena, el punto nuevo pisa
+//  al mas viejo. 288 puntos x 4 bytes = ~1,2 KB de RAM.
+//  Se graba en la flash cada 1 h y no cada punto, porque la flash
+//  aguanta una cantidad limitada de escrituras.
+// -------------------------------------------------------------
+const int16_t SIN_DATO = INT16_MIN;        // hueco (sensor caido o equipo apagado)
+struct PuntoHist { int16_t t, h; };        // en decimas: 234 = 23,4
+struct CabHist   { uint16_t cab, cant; uint32_t epoch; };
+
+PuntoHist hist[HIST_N];
+uint16_t histCab = 0, histCant = 0;        // proximo lugar a escribir / cuantos hay
+uint32_t histEpoch = 0;                    // fecha y hora del ultimo punto (0 = no se sabe)
+unsigned long histDesde = 0;               // millis() del ultimo punto
+uint8_t  sinGrabar = 0;
+bool     huecoRevisado = false;
+
+uint32_t ahoraEpoch() {                    // 0 si todavia no hay hora de internet
+  time_t a = time(nullptr);
+  return a > 1700000000 ? (uint32_t)a : 0;
+}
+
+void histAgregar(int16_t t, int16_t h) {
+  hist[histCab] = { t, h };
+  histCab = (histCab + 1) % HIST_N;
+  if (histCant < HIST_N) histCant++;
+}
+
+void histGrabar() {
+  CabHist c = { histCab, histCant, histEpoch };
+#if defined(ESP8266)
+  File f = LittleFS.open("/hist.bin", "w");
+  if (f) { f.write((uint8_t*)&c, sizeof(c)); f.write((uint8_t*)hist, sizeof(hist)); f.close(); }
+#else
+  prefs.begin("hist", false);
+  prefs.putBytes("cab", &c, sizeof(c));
+  prefs.putBytes("datos", hist, sizeof(hist));
+  prefs.end();
+#endif
+}
+
+void histCargar() {
+  CabHist c = { 0, 0, 0 };
+  bool ok = false;
+#if defined(ESP8266)
+  File f = LittleFS.open("/hist.bin", "r");
+  if (f && f.size() == sizeof(c) + sizeof(hist)) {
+    f.read((uint8_t*)&c, sizeof(c)); f.read((uint8_t*)hist, sizeof(hist)); ok = true;
+  }
+  if (f) f.close();
+#else
+  prefs.begin("hist", true);
+  ok = prefs.getBytesLength("cab") == sizeof(c) && prefs.getBytesLength("datos") == sizeof(hist);
+  if (ok) { prefs.getBytes("cab", &c, sizeof(c)); prefs.getBytes("datos", hist, sizeof(hist)); }
+  prefs.end();
+#endif
+  if (!ok || c.cab >= HIST_N || c.cant > HIST_N) return;   // primera vez, o cambio el tamano
+  histCab = c.cab; histCant = c.cant; histEpoch = c.epoch;
+  Serial.printf("[HIST] %u puntos recuperados de la flash\n", histCant);
+}
+
+void histTick() {
+  uint32_t ahora = ahoraEpoch();
+
+  // Si el equipo estuvo apagado, se marcan esas horas como hueco
+  // (solo se puede saber con la hora de internet).
+  if (!huecoRevisado && ahora) {
+    huecoRevisado = true;
+    if (histEpoch && ahora > histEpoch) {
+      uint32_t faltan = (ahora - histEpoch) / HIST_PASO_S;
+      if (faltan > HIST_N) faltan = HIST_N;
+      for (uint32_t i = 0; i < faltan; i++) histAgregar(SIN_DATO, SIN_DATO);
+      if (faltan) Serial.printf("[HIST] estuvo apagado: %u puntos sin datos\n", (unsigned)faltan);
+    }
+  }
+
+  if (millis() - histDesde < HIST_PASO_S * 1000UL) return;
+  histDesde = millis();
+  huecoRevisado = true;                     // si a esta altura no hubo hora, no se revisa mas
+
+  if (nProm) histAgregar((int16_t)lroundf(sumT / nProm * 10), (int16_t)lroundf(sumH / nProm * 10));
+  else       histAgregar(SIN_DATO, SIN_DATO);   // 10 min sin lecturas buenas
+  sumT = sumH = 0; nProm = 0;
+  histEpoch = ahora;
+
+  if (++sinGrabar >= HIST_GRABAR_CADA) { sinGrabar = 0; histGrabar(); }
+}
+
+// Se manda en partes chicas (48 puntos, ~600 bytes) para no necesitar
+// un buffer MQTT grande: en el 8266 la memoria es justa.
+// "edad" = segundos desde el ultimo punto; con eso la app calcula la
+// hora de cada punto aunque el equipo no tenga hora de internet.
+void publicarHistorial() {
+  if (!mqtt.connected()) return;
+  uint16_t partes = histCant ? (histCant + HIST_POR_MENSAJE - 1) / HIST_POR_MENSAJE : 1;
+  uint32_t edad   = (millis() - histDesde) / 1000;
+  uint16_t inicio = (histCab + HIST_N - histCant) % HIST_N;   // el mas viejo
+  for (uint16_t p = 0; p < partes; p++) {
+    uint16_t desde = p * HIST_POR_MENSAJE;
+    uint16_t hasta = min<uint16_t>(histCant, desde + HIST_POR_MENSAJE);
+    String j = "{\"p\":" + String(p) + ",\"de\":" + String(partes) + ",\"n\":" + String(histCant) +
+               ",\"dt\":" + String(HIST_PASO_S) + ",\"edad\":" + String(edad) +
+               ",\"desde\":" + String(desde) + ",\"v\":[";
+    for (uint16_t k = desde; k < hasta; k++) {
+      const PuntoHist& q = hist[(inicio + k) % HIST_N];
+      if (k > desde) j += ',';
+      if (q.t == SIN_DATO) j += "null";
+      else j += "[" + String(q.t) + "," + String(q.h) + "]";
+    }
+    j += "]}";
+    publicar(t("historial"), j, false);
+  }
 }
 
 // -------------------------------------------------------------
@@ -408,6 +530,9 @@ void alRecibir(char* topic, byte* payload, unsigned int largo) {
   else if (cmd == "estado") {             // la app pide el estado al instante
     publicarEstado();
     publicarConfig();
+  }
+  else if (cmd == "historial") {          // la app pide los datos para el grafico
+    publicarHistorial();
   }
 }
 
@@ -657,6 +782,7 @@ void setup() {
   if (!Prefs8266::iniciar()) Serial.println("[CONFIG] no se pudo montar la flash: uso valores por defecto");
 #endif
   cargarConfig();
+  histCargar();
   Serial.printf("[CONFIG] abrir %.1f / cerrar %.1f °C, riego %.0f-%.0f %%, recorrido %u s, modo %s\n",
                 cfg.tempAbrir, cfg.tempCerrar, cfg.humRiegoOn, cfg.humRiegoOff,
                 cfg.recorridoS, modoAuto ? "auto" : "manual");
@@ -688,7 +814,7 @@ void setup() {
   if (!caOk) Serial.println("[MQTT] FALTA el certificado en ca_cert.h: no se conecta al broker");
   mqtt.setServer(mqttHost, MQTT_PORT);
   mqtt.setCallback(alRecibir);
-  mqtt.setBufferSize(512);
+  mqtt.setBufferSize(1024);             // alcanza para una parte del historial
   mqtt.setKeepAlive(MQTT_KEEPALIVE_S);   // ver config.h
   mqtt.setSocketTimeout(10);
 }
@@ -705,6 +831,7 @@ void loop() {
   venteoTick();
   riegoTick();
   botonesTick();
+  histTick();
 
   wifiTick();
 #if !MODO_WOKWI

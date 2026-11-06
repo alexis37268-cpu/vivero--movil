@@ -24,7 +24,8 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 | `vivero/nodo1/online` | sí | `online` / `offline` (este último lo publica el broker solo si el ESP32 se cae) |
 | `vivero/nodo1/estado` | sí | JSON: `temp`, `hum`, `sensor_ok`, `venteo`, `riego`, `modo`, `rssi`, `uptime_s` |
 | `vivero/nodo1/config` | sí | JSON con los setpoints actuales |
-| `vivero/nodo1/alarma` | no | Texto con el problema (sensor caído, motor sin llegar, etc.) |
+| `vivero/nodo1/alarma` | no | Texto con el problema (sensor caído, riego cortado por tiempo, etc.) |
+| `vivero/nodo1/historial` | no | Responde a `cmd/historial`: últimas 48 h (un promedio cada 10 min) en partes de 48 puntos. JSON `p`, `de`, `n`, `dt`, `edad`, `desde`, `v` = `[[temp×10, hum×10], …]` (`null` = hueco) |
 
 `venteo` puede ser: `cerrado`, `abierto`, `abriendo`, `cerrando`, `desconocido` (parado a mitad de camino).
 
@@ -42,6 +43,7 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 | `cmd/config/riego_max_min` | número | min (por defecto 10) |
 | `cmd/config/riego_pausa_min` | número | min (por defecto 30) |
 | `cmd/estado` | cualquier cosa | Pide el estado al instante |
+| `cmd/historial` | cualquier cosa | Pide el historial para el gráfico de la app |
 
 Los valores fuera de rango se rechazan y se avisa por `alarma`.
 

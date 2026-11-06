@@ -70,6 +70,24 @@
   .equipo i.ok{background:#7ee08f}.equipo i.mal{background:#ff8a7a}
   .equipo.on{background:var(--card);color:var(--ink)}
   .badge{background:var(--rojo);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;margin-left:4px}
+  .graf-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .graf-cab h2{margin:0}
+  .seg.tres{grid-template-columns:repeat(3,1fr)}
+  .seg.tres button{padding:6px 10px;font-size:13px}
+  .graf{position:relative;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+  .graf svg{display:block;width:100%;height:210px}
+  .graf .eje{fill:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+  .graf .rejilla{stroke:var(--line);stroke-width:1}
+  .graf .lt{fill:none;stroke:var(--rojo);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .graf .lh{fill:none;stroke:var(--azul);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .graf .spt{stroke:var(--rojo);stroke-width:1;stroke-dasharray:4 4;opacity:.65}
+  .graf .sph{stroke:var(--azul);stroke-width:1;stroke-dasharray:4 4;opacity:.65}
+  .graf .cursor{stroke:var(--ink);stroke-width:1;opacity:.4}
+  .graf .pt{fill:var(--rojo)} .graf .ph{fill:var(--azul)}
+  .g-tip{position:absolute;top:0;background:var(--ink);color:var(--card);font-size:12px;padding:4px 8px;border-radius:8px;white-space:nowrap;pointer-events:none;transform:translateX(-50%)}
+  .leyenda{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:6px}
+  .leyenda b{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+  .leyenda .t b{border-color:var(--rojo)} .leyenda .h b{border-color:var(--azul)} .leyenda .sp b{border-top-style:dashed;border-color:var(--muted)}
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
 </style>
@@ -91,6 +109,25 @@
       <div class="medida"><small>Humedad</small><div class="v" id="hum">--<span>%</span></div></div>
     </div>
     <p class="nota" id="actualizado">Esperando datos del vivero…</p>
+
+    <div class="card" style="margin-top:12px">
+      <div class="graf-cab">
+        <h2>Últimas horas</h2>
+        <div class="seg tres" id="rango">
+          <button data-h="6">6 h</button><button data-h="24">24 h</button><button data-h="48">48 h</button>
+        </div>
+      </div>
+      <div class="graf" id="graf">
+        <svg id="g-svg" aria-label="Gráfico de temperatura y humedad"></svg>
+        <div class="g-tip" id="g-tip" hidden></div>
+      </div>
+      <div class="leyenda">
+        <span class="t"><b></b>Temperatura (°C, izq.)</span>
+        <span class="h"><b></b>Humedad (%, der.)</span>
+        <span class="sp"><b></b>Ajustes (abre/cierra, riega/corta)</span>
+      </div>
+      <p class="nota" id="g-nota"></p>
+    </div>
 
     <div class="card" style="margin-top:12px">
       <h2>Estado</h2>
@@ -223,6 +260,7 @@
     $$('.vista').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.vista));
     if (b.dataset.vista === 'alarmas') { noLeidas = 0; pintarBadge(); }
     if (b.dataset.vista === 'ajustes') cargarAjustes();
+    if (b.dataset.vista === 'inicio') setTimeout(dibujar, 0);   // al estar oculto no tenía ancho
     window.scrollTo(0, 0);
   }));
 
@@ -284,12 +322,13 @@
   const nodos = {};
   const nombreNodo = (id) => (nodos[id] && nodos[id].nombre) || (id === 'nodo1' ? 'Vivero' : id);
   function suscribirNodo(){
-    cliente.subscribe([base() + 'estado', base() + 'config', base() + 'alarma'], { qos: 1 });
+    cliente.subscribe([base() + 'estado', base() + 'config', base() + 'alarma', base() + 'historial'], { qos: 1 });
     ordenar('estado', '1');
+    pedirHistorial();
   }
   function cambiarNodo(id){
     if (id === cfg.nodo) return;
-    if (cliente && cliente.connected) cliente.unsubscribe([base() + 'estado', base() + 'config', base() + 'alarma']);
+    if (cliente && cliente.connected) cliente.unsubscribe([base() + 'estado', base() + 'config', base() + 'alarma', base() + 'historial']);
     cfg.nodo = id; guardar('dm.conexion', cfg); $('#c-nodo').value = id;
     estado = null; cfgEquipo = null; ultimoEstado = 0;
     online = nodos[id] ? nodos[id].online : null;
@@ -297,7 +336,7 @@
     ['temp','hum'].forEach(k => $('#' + k).firstChild.nodeValue = '--');
     ['venteo','riego','sensor'].forEach(k => poner(k, '—'));
     if (cliente && cliente.connected) suscribirNodo();
-    pintarEquipos(); pintar();
+    pintarEquipos(); pintar(); dibujar();
   }
   function pintarEquipos(){
     const c = $('#equipos');
@@ -334,11 +373,13 @@
     if (id !== cfg.nodo) return;           // es de otro equipo: solo lo anotamos arriba
     const sub = m[2];
     if (sub === 'estado') {
-      try { estado = JSON.parse(txt); ultimoEstado = Date.now(); pintar(); } catch (e) {}
+      try { estado = JSON.parse(txt); ultimoEstado = Date.now(); pintar(); puntoVivo(estado); } catch (e) {}
     } else if (sub === 'online') {
       online = (txt === 'online'); pintar();
     } else if (sub === 'config') {
-      try { cfgEquipo = JSON.parse(txt); if ($('#v-ajustes').classList.contains('on') && !editando) cargarAjustes(); } catch (e) {}
+      try { cfgEquipo = JSON.parse(txt); if ($('#v-ajustes').classList.contains('on') && !editando) cargarAjustes(); dibujar(); } catch (e) {}
+    } else if (sub === 'historial') {
+      try { parteHistorial(JSON.parse(txt)); } catch (e) {}
     } else if (sub === 'alarma') {
       alarmas.unshift({ t: Date.now(), m: txt });
       alarmas = alarmas.slice(0, 50);
@@ -396,6 +437,148 @@
   $$('[data-cmd]').forEach(b => b.addEventListener('click', () => {
     if (ordenar(b.dataset.cmd, b.dataset.msg)) avisar('Orden enviada: ' + b.textContent);
   }));
+
+
+  // ---------- Gráfico de las últimas horas ----------
+  // El equipo guarda un promedio cada 10 min (48 h) y lo manda en partes cuando se lo pedimos.
+  // Además se suman en vivo los datos que llegan cada 30 s.
+  const MAX_MS = 48 * 3600e3;
+  const graf = {};                               // por equipo: { hist:[], vivo:[], partes:{}, pedido:0 }
+  const G = (id) => graf[id] || (graf[id] = { hist: [], vivo: [], partes: null, pedido: 0, llego: false });
+  let rangoH = leer('dm.rango', 24);
+
+  function pedirHistorial(){
+    if (!cliente || !cliente.connected) return;
+    const g = G(cfg.nodo); g.pedido = Date.now(); g.partes = null;
+    cliente.publish(base() + 'cmd/historial', '1', { qos: 1, retain: false });
+    setTimeout(() => { armarHistorial(cfg.nodo); dibujar(); }, 6000);   // si falta alguna parte, usa lo que llegó
+  }
+  setInterval(pedirHistorial, 15 * 60e3);
+
+  function parteHistorial(m){
+    const g = G(cfg.nodo), ahora = Date.now();
+    if (!g.partes || m.p === 0) g.partes = { de: m.de, recibidas: {}, puntos: [] };
+    g.partes.recibidas[m.p] = true;
+    (m.v || []).forEach((v, k) => {
+      const i = m.desde + k;
+      const t = ahora - (m.edad + (m.n - 1 - i) * m.dt) * 1000;   // hora de cada punto
+      g.partes.puntos[i] = v ? { t, temp: v[0] / 10, hum: v[1] / 10 } : { t, temp: null, hum: null };
+    });
+    if (Object.keys(g.partes.recibidas).length >= m.de) { armarHistorial(cfg.nodo); dibujar(); }
+  }
+  function armarHistorial(id){
+    const g = G(id);
+    if (!g.partes) return;
+    g.hist = g.partes.puntos.filter(Boolean);
+    g.partes = null; g.llego = true;
+    const ult = g.hist.length ? g.hist[g.hist.length - 1].t : 0;
+    g.vivo = g.vivo.filter(p => p.t > ult);          // lo viejo ya está en el historial
+  }
+  function puntoVivo(s){
+    const g = G(cfg.nodo), ahora = Date.now();
+    g.vivo.push({ t: ahora, temp: s.temp, hum: s.hum });
+    g.vivo = g.vivo.filter(p => ahora - p.t < MAX_MS);
+    dibujar();
+  }
+
+  $$('#rango button').forEach(b => {
+    b.classList.toggle('on', +b.dataset.h === rangoH);
+    b.addEventListener('click', () => {
+      rangoH = +b.dataset.h; guardar('dm.rango', rangoH);
+      $$('#rango button').forEach(x => x.classList.toggle('on', x === b));
+      dibujar();
+    });
+  });
+
+  let geo = null;                                  // lo necesario para el cursor al tocar
+  function dibujar(){
+    const svg = $('#g-svg'), W = svg.clientWidth || 340, H = 210;
+    const m = { l: 34, r: 34, t: 10, b: 22 }, w = W - m.l - m.r, h = H - m.t - m.b;
+    const g = G(cfg.nodo), ahora = Date.now(), t0 = ahora - rangoH * 3600e3;
+    const ult = g.hist.length ? g.hist[g.hist.length - 1].t : 0;
+    const pts = g.hist.concat(g.vivo.filter(p => p.t > ult)).filter(p => p.t >= t0);
+    const c = cfgEquipo || {};
+
+    // Escala de temperatura: datos + líneas de ajuste, redondeada a números enteros
+    const vt = pts.map(p => p.temp).filter(v => v != null).concat([c.temp_abrir, c.temp_cerrar].filter(v => v != null));
+    let tMin = vt.length ? Math.floor(Math.min(...vt) - 1) : 10, tMax = vt.length ? Math.ceil(Math.max(...vt) + 1) : 35;
+    if (tMax - tMin < 4) { tMax = tMin + 4; }
+    const paso = Math.ceil((tMax - tMin) / 4); tMax = tMin + paso * 4;
+    const X = (t) => m.l + (t - t0) / (ahora - t0) * w;
+    const YT = (v) => m.t + (1 - (v - tMin) / (tMax - tMin)) * h;
+    const YH = (v) => m.t + (1 - v / 100) * h;
+
+    let o = '';
+    for (let i = 0; i <= 4; i++) {                 // rejilla y ejes
+      const y = m.t + i * h / 4;
+      o += `<line class="rejilla" x1="${m.l}" x2="${m.l + w}" y1="${y}" y2="${y}"/>`;
+      o += `<text class="eje" x="${m.l - 5}" y="${y + 3}" text-anchor="end">${tMax - i * paso}°</text>`;
+      o += `<text class="eje" x="${m.l + w + 5}" y="${y + 3}">${100 - i * 25}%</text>`;
+    }
+    const cada = rangoH <= 6 ? 1 : rangoH <= 24 ? 4 : 8;   // marcas de hora
+    const d = new Date(t0); d.setMinutes(0, 0, 0);
+    for (let t = d.getTime() + 3600e3; t < ahora; t += 3600e3) {
+      const hh = new Date(t).getHours();
+      if (hh % cada) continue;
+      o += `<text class="eje" x="${X(t)}" y="${H - 6}" text-anchor="middle">${String(hh).padStart(2, '0')}:00</text>`;
+      o += `<line class="rejilla" x1="${X(t)}" x2="${X(t)}" y1="${m.t + h}" y2="${m.t + h + 4}"/>`;
+    }
+    if (c.temp_abrir != null) [c.temp_abrir, c.temp_cerrar].forEach(v => o += `<line class="spt" x1="${m.l}" x2="${m.l + w}" y1="${YT(v)}" y2="${YT(v)}"/>`);
+    if (c.hum_riego_on != null) [c.hum_riego_on, c.hum_riego_off].forEach(v => o += `<line class="sph" x1="${m.l}" x2="${m.l + w}" y1="${YH(v)}" y2="${YH(v)}"/>`);
+
+    // Líneas: se cortan en los huecos (sensor caído, equipo apagado o más de 25 min sin datos)
+    const linea = (clave, Y) => {
+      let dd = '', ant = null;
+      pts.forEach(p => {
+        if (p[clave] == null) { ant = null; return; }
+        const nuevo = !ant || p.t - ant.t > 25 * 60e3;
+        dd += (nuevo ? 'M' : 'L') + X(p.t).toFixed(1) + ' ' + Y(p[clave]).toFixed(1) + (nuevo ? 'l0 0' : '');   // l0 0: un punto suelto se ve igual
+        ant = p;
+      });
+      return dd;
+    };
+    o += `<path class="lh" d="${linea('hum', YH)}"/><path class="lt" d="${linea('temp', YT)}"/>`;
+    o += `<g id="g-cur" hidden><line class="cursor" y1="${m.t}" y2="${m.t + h}"/><circle class="pt" r="3.5"/><circle class="ph" r="3.5"/></g>`;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = o;
+    $('#g-tip').hidden = true;
+    geo = { pts, X, YT, YH, m, w };
+
+    const nota = $('#g-nota');
+    if (c.hist === undefined && cfgEquipo) nota.textContent = 'Este equipo no guarda historial: el gráfico muestra desde que abriste la app.';
+    else if (!pts.length) nota.textContent = g.llego ? 'Todavía no hay datos guardados: el equipo guarda un punto cada 10 minutos.' : 'Cargando historial…';
+    else nota.textContent = 'Tocá el gráfico para ver el valor de cada momento.';
+  }
+
+  // Cursor: tocar o arrastrar sobre el gráfico muestra hora, temperatura y humedad
+  function cursor(ev){
+    if (!geo || !geo.pts.length) return;
+    const svg = $('#g-svg'), r = svg.getBoundingClientRect();
+    const x = (ev.clientX - r.left) * (svg.viewBox.baseVal.width / r.width);
+    let mejor = null, dist = Infinity;
+    geo.pts.forEach(p => { if (p.temp == null) return; const dd = Math.abs(geo.X(p.t) - x); if (dd < dist) { dist = dd; mejor = p; } });
+    if (!mejor) return;
+    const cx = geo.X(mejor.t), cur = $('#g-cur');
+    cur.removeAttribute('hidden');
+    cur.querySelector('line').setAttribute('x1', cx); cur.querySelector('line').setAttribute('x2', cx);
+    const [ct, ch] = cur.querySelectorAll('circle');
+    ct.setAttribute('cx', cx); ct.setAttribute('cy', geo.YT(mejor.temp));
+    ch.setAttribute('cx', cx); ch.setAttribute('cy', geo.YH(mejor.hum));
+    const tip = $('#g-tip'), px = cx * r.width / svg.viewBox.baseVal.width;
+    tip.hidden = false;
+    tip.textContent = new Date(mejor.t).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) +
+      ' · ' + mejor.temp.toFixed(1).replace('.', ',') + ' °C · ' + Math.round(mejor.hum) + ' %';
+    tip.style.left = Math.min(Math.max(px, 70), r.width - 70) + 'px';
+  }
+  let ocultarT;
+  const svgG = $('#g-svg');
+  svgG.addEventListener('pointerdown', (e) => { clearTimeout(ocultarT); cursor(e); });
+  svgG.addEventListener('pointermove', (e) => { if (e.buttons || e.pointerType === 'mouse') cursor(e); });
+  const ocultar = () => { ocultarT = setTimeout(() => { $('#g-tip').hidden = true; const c = $('#g-cur'); if (c) c.setAttribute('hidden', ''); }, 2500); };
+  svgG.addEventListener('pointerup', ocultar);
+  svgG.addEventListener('pointerleave', ocultar);
+  window.addEventListener('resize', dibujar);
+  setInterval(dibujar, 60e3);                      // corre el eje de tiempo aunque no lleguen datos
 
   // ---------- Ajustes ----------
   // Mismos límites que valida el ESP32 (si no, lo rechaza y manda alarma)
@@ -486,7 +669,7 @@
   $('#c-desconectar').addEventListener('click', () => { desconectar(); avisar('Desconectado'); });
 
   // ---------- Arranque ----------
-  cargarConexion(); pintarAlarmas(); pintar(); pintarEquipos();
+  cargarConexion(); pintarAlarmas(); pintar(); pintarEquipos(); dibujar();
   if (cfg.pass) conectar();
   else { pill('aviso', 'Falta configurar'); $$('nav button')[3].click(); }
 })();
