@@ -1,2 +1,6 @@
 # Claves: nunca a GitHub
 secrets.h
+
+# Temporales de Python
+__pycache__/
+cache-alertas.json
