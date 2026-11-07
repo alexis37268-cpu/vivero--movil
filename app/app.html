@@ -58,7 +58,7 @@
   .alarma{padding:10px 0;border-top:1px solid var(--line)}
   .alarma:first-child{border-top:0}
   .alarma time{display:block;color:var(--muted);font-size:12px}
-  nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+  nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
   nav button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;padding:6px 2px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:2px}
   nav button svg{width:22px;height:22px}
   nav button.on{color:var(--verde);background:var(--verde-claro)}
@@ -147,7 +147,7 @@
   @media (min-width: 900px){
     body{font-size:15px}
     .app{max-width:1240px;padding:16px 24px 32px 236px}
-    nav{top:0;bottom:0;right:auto;width:212px;grid-template-columns:1fr;grid-auto-rows:min-content;align-content:start;gap:4px;border-top:0;border-right:1px solid var(--line);padding:132px 12px 12px}
+    nav{top:0;bottom:0;right:auto;width:212px;grid-auto-flow:row;grid-template-columns:1fr;grid-auto-rows:min-content;align-content:start;gap:4px;border-top:0;border-right:1px solid var(--line);padding:132px 12px 12px}
     nav button{flex-direction:row;justify-content:flex-start;gap:12px;font-size:15px;padding:11px 14px}
     .solo-pc{display:block}
     .toast{bottom:24px}
@@ -157,6 +157,8 @@
     #v-inicio .grande{grid-area:medidas;grid-template-columns:repeat(2,minmax(0,1fr))} #actualizado{grid-area:act;margin-bottom:12px}
     #c-graf{grid-area:graf;margin-top:0!important} #c-estado{grid-area:estado;margin-top:0!important} #c-control{grid-area:control}
     .graf svg{height:320px}
+    #v-cultivos.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;align-items:start}
+    #cu-resumen,#cu-tabs{grid-column:1 / -1}
     #v-ajustes.on,#v-clima.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
     #v-ajustes .card,#v-clima .card{margin-bottom:0}
     .filtros{grid-template-columns:2fr 1fr 1fr 2fr}
@@ -165,6 +167,16 @@
     .reg span{padding-left:0}
     #v-ingreso,#v-conexion{max-width:520px}
   }
+  .cu-tabs .equipo{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  .cu-tabs .equipo.on{background:var(--verde);color:#fff;border-color:var(--verde)}
+  .cu-tabs .equipo i.reg{background:var(--azul)} .cu-tabs .equipo i.seco{background:var(--sol)} .cu-tabs .equipo i.ok{background:#7ee08f} .cu-tabs .equipo i.mal{background:var(--rojo)}
+  .cu-graf svg{display:block;width:100%;height:150px}
+  .cu-graf .ls{fill:none;stroke:var(--verde);stroke-width:2;stroke-linejoin:round}
+  .cu-graf .lr{fill:var(--azul);opacity:.18}
+  .riego-item{padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+  .riego-item:first-child{border-top:0}
+  .riego-item small{color:var(--muted);display:block}
+  #cu-resumen .nota{margin:0}
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
 </style>
@@ -262,6 +274,58 @@
         <button class="btn"      data-cmd="riego" data-msg="off">Cortar riego</button>
       </div>
       <p class="nota">«Parar» y «Cortar riego» funcionan siempre, también en automático.</p>
+    </div>
+  </section>
+
+  <!-- ============ CULTIVOS ============ -->
+  <section id="v-cultivos" class="vista">
+    <div class="card" id="cu-resumen">
+      <div class="graf-cab"><h2>Riego por cultivos</h2><span class="pill" id="cu-modo">—</span></div>
+      <p class="nota" id="cu-estado">Esperando datos del equipo…</p>
+    </div>
+    <div class="equipos cu-tabs" id="cu-tabs" role="tablist" aria-label="Cultivo"></div>
+    <div>
+      <div class="card" id="cu-ficha">
+        <div class="graf-cab"><h2 id="cu-nombre">Cultivo</h2><span class="pill" id="cu-pill">—</span></div>
+        <div class="grande">
+          <div class="medida"><small>Humedad del suelo</small><div class="v" id="cu-suelo">--<span>%</span></div></div>
+          <div class="medida"><small>Litros hoy</small><div class="v" id="cu-lhoy">--<span>L</span></div></div>
+        </div>
+        <div class="fila" style="margin-top:8px"><span>Litros este mes / total</span><span class="estado" id="cu-lmes">—</span></div>
+        <div class="fila"><span>Riega</span><span class="estado" id="cu-regla">—</span></div>
+        <div class="fila"><span>Riego en curso</span><span class="estado" id="cu-curso">—</span></div>
+        <h3>Humedad del suelo, últimas 48 h</h3>
+        <div class="cu-graf"><svg id="cu-svg" aria-label="Humedad del suelo"></svg></div>
+        <div class="botones dos" style="margin-top:10px">
+          <button class="btn prim" id="cu-regar" data-manual>Regar este</button>
+          <button class="btn" id="cu-cortar">Cortar riego</button>
+        </div>
+        <p class="nota">«Regar» funciona en manual; «Cortar» siempre. Se riega de a un cultivo por vez.</p>
+      </div>
+    </div>
+    <div>
+      <form class="card" id="f-cultivo" autocomplete="off">
+        <h2>Ajustes de este cultivo</h2>
+        <label for="cf-nombre">Nombre</label><input id="cf-nombre" maxlength="16">
+        <label for="cf-modo">Cortar el riego por</label>
+        <select id="cf-modo" class="campo-sel"><option value="0">Humedad del suelo</option><option value="1">Litros</option><option value="2">Lo que pase primero (humedad o litros)</option></select>
+        <div class="doble">
+          <div><label for="cf-on">Riega debajo de (%)</label><input id="cf-on" type="number" min="0" max="99" inputmode="numeric"></div>
+          <div><label for="cf-off">Corta arriba de (%)</label><input id="cf-off" type="number" min="1" max="100" inputmode="numeric"></div>
+        </div>
+        <div class="doble">
+          <div><label for="cf-litros">Corta a los (litros)</label><input id="cf-litros" type="number" min="1" max="5000" inputmode="numeric"></div>
+          <div><label for="cf-max">Máximo por riego (min)</label><input id="cf-max" type="number" min="1" max="240" inputmode="numeric"></div>
+        </div>
+        <label class="interruptor" for="cf-activo" style="margin-top:12px">Riego automático de este cultivo <input id="cf-activo" type="checkbox"></label>
+        <p class="solo-admin" id="cf-admin" hidden>Solo un administrador puede cambiar estos valores.</p>
+        <div class="botones dos" style="margin-top:12px"><span></span><button type="submit" class="btn prim">Guardar</button></div>
+      </form>
+      <div class="card">
+        <div class="graf-cab"><h2>Últimos riegos</h2><button class="btn chico" id="cu-riegos-act">Actualizar</button></div>
+        <div id="cu-riegos"><p class="nota">Cargando…</p></div>
+      </div>
+      <button class="btn prim" id="cu-exportar" style="width:100%;margin-bottom:12px">Exportar todo a Excel</button>
     </div>
   </section>
 
@@ -423,6 +487,7 @@
 
 <nav>
   <button data-vista="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</button>
+  <button data-vista="cultivos" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21v-9"/><path d="M12 12C12 7 8.5 4 4 4c0 5 3.5 8 8 8z"/><path d="M12 14c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z"/><path d="M5 21h14"/></svg>Cultivos</button>
   <button data-vista="clima"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M2.5 8H1M3.6 3.6l1 1M12.4 3.6l-1 1"/><path d="M9 20h9a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.4 1.6A3.3 3.3 0 0 0 9 20z"/></svg>Clima</button>
   <button data-vista="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
   <button data-vista="alarmas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span>Alarmas<span id="badge" class="badge" hidden></span></span></button>
@@ -466,6 +531,7 @@
     if (b.dataset.vista === 'alarmas' && solapa === 'cambios') pedirRegistro();
     if (b.dataset.vista === 'inicio') setTimeout(dibujar, 0);   // al estar oculto no tenía ancho
     if (b.dataset.vista === 'clima') { pintarPermisos(); actualizarAfuera(false); }
+    if (b.dataset.vista === 'cultivos') { pintarCultivos(); cargarCultivoCfg(); pedirRiegos(); }
     window.scrollTo(0, 0);
   }));
 
@@ -537,23 +603,26 @@
   const nombreNodo = (id) => (nodos[id] && nodos[id].nombre) || (id === 'nodo1' ? 'Vivero' : id);
   function suscribirNodo(){
     cliente.subscribe([base() + 'estado', base() + 'config', base() + 'alarma', base() + 'historial',
-                       base() + 'usuarios', base() + 'registro', base() + 'registro/nuevo'], { qos: 1 });
+                       base() + 'usuarios', base() + 'registro', base() + 'registro/nuevo',
+                       base() + 'cultivos', base() + 'cultivos/config', base() + 'riegos', base() + 'riegos/nuevo'], { qos: 1 });
     ordenar('estado', '1');
     pedirHistorial();
   }
   function cambiarNodo(id){
     if (id === cfg.nodo) return;
     if (cliente && cliente.connected) cliente.unsubscribe([base() + 'estado', base() + 'config', base() + 'alarma', base() + 'historial',
-                                                             base() + 'usuarios', base() + 'registro', base() + 'registro/nuevo']);
+                                                             base() + 'usuarios', base() + 'registro', base() + 'registro/nuevo',
+                                                             base() + 'cultivos', base() + 'cultivos/config', base() + 'riegos', base() + 'riegos/nuevo']);
     cfg.nodo = id; guardar('dm.conexion', cfg); $('#c-nodo').value = id;
     estado = null; cfgEquipo = null; ultimoEstado = 0;
     usuariosEquipo = null; registro = []; regPartes = null;
+    cuCfg = null; cuEst = null; riegos = []; riegosPartes = null; cuVivo = {};
     online = nodos[id] ? nodos[id].online : null;
     $('#actualizado').textContent = 'Esperando datos de ' + nombreNodo(id) + '…';
     ['temp','hum'].forEach(k => $('#' + k).firstChild.nodeValue = '--');
     ['venteo','riego','sensor'].forEach(k => poner(k, '—'));
     if (cliente && cliente.connected) suscribirNodo();
-    pintarEquipos(); pintar(); dibujar(); revisarAcceso(); pintarRegistro();
+    pintarEquipos(); pintar(); dibujar(); revisarAcceso(); pintarRegistro(); pintarCultivos();
   }
   function pintarResumen(){
     const c = $('#resumen'); if (!c || NATIVO) return;
@@ -627,13 +696,21 @@
     } else if (sub === 'online') {
       online = (txt === 'online'); pintar();
     } else if (sub === 'config') {
-      try { cfgEquipo = JSON.parse(txt); if ($('#v-ajustes').classList.contains('on') && !editando) cargarAjustes(); dibujar(); revisarAcceso(); } catch (e) {}
+      try { cfgEquipo = JSON.parse(txt); if ($('#v-ajustes').classList.contains('on') && !editando) cargarAjustes(); dibujar(); revisarAcceso(); navCultivos(); } catch (e) {}
     } else if (sub === 'historial') {
       try { parteHistorial(JSON.parse(txt)); } catch (e) {}
     } else if (sub === 'usuarios') {
       try { usuariosEquipo = JSON.parse(txt); revisarAcceso(); pintarUsuarios(); } catch (e) {}
     } else if (sub === 'registro') {
       try { parteRegistro(JSON.parse(txt)); } catch (e) {}
+    } else if (sub === 'cultivos') {
+      try { cuEst = JSON.parse(txt); vivoCultivos(); pintarCultivos(); } catch (e) {}
+    } else if (sub === 'cultivos/config') {
+      try { cuCfg = JSON.parse(txt); pintarCultivos(); if (!cuEditando) cargarCultivoCfg(); } catch (e) {}
+    } else if (sub === 'riegos') {
+      try { parteRiegos(JSON.parse(txt)); } catch (e) {}
+    } else if (sub === 'riegos/nuevo') {
+      riegos.unshift(lineaRiego(txt)); riegos = riegos.slice(0, 400); pintarRiegos();
     } else if (sub === 'registro/nuevo') {
       registro.unshift(lineaRegistro(txt)); registro = registro.slice(0, 400); pintarRegistro();
     } else if (sub === 'alarma') {
@@ -665,7 +742,8 @@
     if (!s) return;
     const v = NOMBRE_VENTEO[s.venteo] || [s.venteo, ''];
     poner('venteo', v[0] + (s.clima_cierre ? ' (alerta SMN)' : ''), s.clima_cierre ? 'rojo' : v[1]);
-    poner('riego', s.riego === 'on' ? 'Regando' : 'Apagado', s.riego === 'on' ? 'azul' : '');
+    const cuR = cuEst && cuCfg && cuEst.r >= 0 ? cuCfg[cuEst.r] : null;
+    poner('riego', s.riego === 'on' ? 'Regando' + (cuR ? ': ' + cuR.n : '') : 'Apagado', s.riego === 'on' ? 'azul' : '');
     poner('sensor', s.sensor_ok ? 'OK' : 'Sin lectura', s.sensor_ok ? 'verde' : 'rojo');
 
     const auto = s.modo === 'auto';
@@ -718,7 +796,7 @@
     (m.v || []).forEach((v, k) => {
       const i = m.desde + k;
       const t = ahora - (m.edad + (m.n - 1 - i) * m.dt) * 1000;   // hora de cada punto
-      g.partes.puntos[i] = v ? { t, temp: v[0] / 10, hum: v[1] / 10 } : { t, temp: null, hum: null };
+      g.partes.puntos[i] = v ? { t, temp: v[0] / 10, hum: v[1] / 10, s: v.slice(2) } : { t, temp: null, hum: null, s: [] };
     });
     if (Object.keys(g.partes.recibidas).length >= m.de) { armarHistorial(cfg.nodo); dibujar(); }
   }
@@ -833,7 +911,7 @@
   const ocultar = () => { ocultarT = setTimeout(() => { $('#g-tip').hidden = true; const c = $('#g-cur'); if (c) c.setAttribute('hidden', ''); }, 2500); };
   svgG.addEventListener('pointerup', ocultar);
   svgG.addEventListener('pointerleave', ocultar);
-  window.addEventListener('resize', () => { dibujar(); pintarEquipos(); });
+  window.addEventListener('resize', () => { dibujar(); pintarEquipos(); dibujarSuelo(); });
   setInterval(dibujar, 60e3);                      // corre el eje de tiempo aunque no lleguen datos
 
 
@@ -1251,30 +1329,279 @@
     if (solapa === 'cambios') pedirRegistro();
   }));
 
-  // Exportar: CSV con ";" (el Excel en castellano lo abre directo) y BOM para los acentos
-  async function exportarRegistro(){
-    const lista = registroFiltrado();                 // se exporta lo que se ve (con los filtros)
-    if (!lista.length) { avisar('No hay cambios para exportar'); return; }
-    const filas = [['Fecha', 'Hora', 'Quién', 'Qué']].concat(lista.slice().reverse().map(r => {
-      const d = r.t ? new Date(r.t) : null;
-      return [d ? d.toLocaleDateString('es-AR') : 'sin hora', d ? d.toLocaleTimeString('es-AR', { hour12: false }) : '', r.q, r.a];
-    }));
-    const csv = '﻿' + filas.map(f => f.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\r\n');
-    const nombre = 'registro-' + nombreNodo(cfg.nodo).replace(/\W+/g, '-') + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+  // ---------- Exportar a Excel (.xlsx real, con varias hojas) ----------
+  // Un .xlsx es un .zip con archivos XML adentro. Se arma acá mismo, sin librerías.
+  const XLSX = (() => {
+    const enc = new TextEncoder();
+    const T = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; T[n] = c >>> 0; }
+    const crc32 = (b) => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = T[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+    function zip(files){                       // zip sin comprimir ("store"): Excel lo abre igual
+      const partes = [], central = []; let off = 0;
+      files.forEach(f => {
+        const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
+        const h = new DataView(new ArrayBuffer(30));
+        h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true);
+        h.setUint32(14, crc, true); h.setUint32(18, sz, true); h.setUint32(22, sz, true); h.setUint16(26, nm.length, true);
+        partes.push(new Uint8Array(h.buffer), nm, f.data);
+        const c = new DataView(new ArrayBuffer(46));
+        c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
+        c.setUint32(16, crc, true); c.setUint32(20, sz, true); c.setUint32(24, sz, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+        central.push(new Uint8Array(c.buffer), nm);
+        off += 30 + nm.length + sz;
+      });
+      const cs = central.reduce((a, x) => a + x.length, 0);
+      const e = new DataView(new ArrayBuffer(22));
+      e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+      const todo = partes.concat(central, [new Uint8Array(e.buffer)]);
+      const out = new Uint8Array(todo.reduce((a, x) => a + x.length, 0)); let p = 0;
+      todo.forEach(x => { out.set(x, p); p += x.length; });
+      return out;
+    }
+    const esc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+    const col = (n) => { let r = ''; n++; while (n) { const m = (n - 1) % 26; r = String.fromCharCode(65 + m) + r; n = Math.floor((n - 1) / 26); } return r; };
+    const H = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    function hoja(filas, anchos){
+      let x = H + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+      if (anchos) x += '<cols>' + anchos.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>';
+      x += '<sheetData>';
+      filas.forEach((f, r) => {
+        x += `<row r="${r + 1}">`;
+        f.forEach((v, c) => {
+          if (v === null || v === undefined || v === '') return;
+          const ref = col(c) + (r + 1), st = r === 0 ? ' s="1"' : '';
+          x += typeof v === 'number' && isFinite(v) ? `<c r="${ref}"${st}><v>${v}</v></c>` : `<c r="${ref}" t="inlineStr"${st}><is><t xml:space="preserve">${esc(v)}</t></is></c>`;
+        });
+        x += '</row>';
+      });
+      return x + '</sheetData></worksheet>';
+    }
+    function libro(hojas){
+      const f = (name, txt) => ({ name, data: enc.encode(txt) });
+      return zip([
+        f('[Content_Types].xml', H + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+          hojas.map((h, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '</Types>'),
+        f('_rels/.rels', H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'),
+        f('xl/workbook.xml', H + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+          hojas.map((h, i) => `<sheet name="${esc(h.nombre.slice(0, 31))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets></workbook>'),
+        f('xl/_rels/workbook.xml.rels', H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+          hojas.map((h, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') +
+          `<Relationship Id="rId${hojas.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`),
+        f('xl/styles.xml', H + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'),
+        ...hojas.map((h, i) => f(`xl/worksheets/sheet${i + 1}.xml`, hoja(h.filas, h.anchos)))
+      ]);
+    }
+    return { libro };
+  })();
+
+  const dia = (ms) => ms ? new Date(ms).toLocaleDateString('es-AR') : 'sin hora';
+  const hhmm = (ms) => ms ? new Date(ms).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+  const redondo = (v, d = 1) => v == null || isNaN(v) ? '' : Math.round(v * 10 ** d) / 10 ** d;
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+
+  async function exportarExcel(){
+    avisar('Juntando los datos…');
+    // Pedir al equipo lo que falte (historial, registro, riegos)
+    if (cliente && cliente.connected) {
+      pedirHistorial();
+      if (cfgEquipo && cfgEquipo.usuarios && !registro.length) pedirRegistro();
+      if (nCultivos() && !riegos.length) pedirRiegos();
+      await esperar(2500);
+    }
+    const eq = nombreNodo(cfg.nodo), hojas = [];
+    const g = G(cfg.nodo), ult = g.hist.length ? g.hist[g.hist.length - 1].t : 0;
+    const pts = g.hist.concat(g.vivo.filter(p => p.t > ult));
+    const nc = cuCfg ? cuCfg.length : 0;
+    hojas.push({ nombre: 'Temp y humedad', anchos: [12, 8, 14, 13].concat(Array(nc).fill(16)),
+      filas: [['Fecha', 'Hora', 'Temperatura °C', 'Humedad aire %'].concat((cuCfg || []).map(c => 'Suelo ' + c.n + ' %'))]
+        .concat(pts.filter(p => p.temp != null).map(p => [dia(p.t), hhmm(p.t), redondo(p.temp), redondo(p.hum, 0)].concat((p.s || []).slice(0, nc).map(v => v == null ? '' : v)))) });
+    if (nc) {
+      hojas.push({ nombre: 'Riegos', anchos: [12, 8, 8, 16, 10, 10, 14, 34],
+        filas: [['Fecha', 'Inicio', 'Fin', 'Cultivo', 'Litros', 'Minutos', 'Quién', 'Motivo del corte']]
+          .concat(riegos.slice().reverse().map(r => [dia(r.ini), hhmm(r.ini), hhmm(r.fin), r.c, redondo(r.l), redondo(r.seg / 60), r.q, r.mot])) });
+      const ce = (cuEst && cuEst.c) || [];
+      hojas.push({ nombre: 'Litros por cultivo', anchos: [18, 12, 12, 12, 18, 30],
+        filas: [['Cultivo', 'Hoy (L)', 'Este mes (L)', 'Total (L)', 'Humedad suelo %', 'Riega']]
+          .concat(cuCfg.map((c, i) => [c.n, redondo(ce[i] && ce[i].lh), redondo(ce[i] && ce[i].lm), redondo(ce[i] && ce[i].lt),
+                                       ce[i] && ce[i].s != null ? Math.round(ce[i].s) : '', 'debajo de ' + c.on + ' %, corta por ' + CORTE_TXT[c.m]])) });
+    }
+    if (registro.length) hojas.push({ nombre: 'Cambios', anchos: [12, 8, 16, 60],
+      filas: [['Fecha', 'Hora', 'Quién', 'Qué']].concat(registroFiltrado().slice().reverse().map(r => [dia(r.t), hhmm(r.t), r.q, r.a])) });
+    if (afuera && (afuera.estacion || afuera.pronostico)) {
+      const e = afuera.estacion, p = afuera.pronostico;
+      const f = [['Dato', 'Valor']];
+      if (e) f.push(['Estación', 'REM ' + e.nombre + ' (' + e.hora + ')'], ['Temperatura °C', e.temp], ['Humedad %', e.hum], ['Viento km/h', e.viento],
+                    ['Ráfaga máx. hoy km/h', e.rafagaHoy], ['Lluvia 24 h mm', e.lluvia24h], ['Lluvia 30 días mm', e.lluvia30d],
+                    ['Suelo 5 cm °C', e.suelo[0]], ['Suelo 10 cm °C', e.suelo[1]], ['Suelo 30 cm °C', e.suelo[2]]);
+      if (p) p.dias.forEach(d => f.push(['Pronóstico ' + d.dia + ' (' + p.estacion + ')', d.min + ' / ' + d.max + ' °C, ' + d.cielo + (d.lluvia ? ', prob. lluvia' : '')]));
+      f.push(['Fuente', 'REM, Gobierno de San Luis']);
+      hojas.push({ nombre: 'Clima', anchos: [34, 46], filas: f });
+    }
+    const datos = XLSX.libro(hojas);
+    const nombre = eq.replace(/\W+/g, '-') + '-' + new Date().toISOString().slice(0, 10) + '.xlsx';
     const P = window.Capacitor && window.Capacitor.Plugins;
     if (NATIVO && P && P.Filesystem && P.Share) {
       try {
-        const w = await P.Filesystem.writeFile({ path: nombre, data: csv, directory: 'CACHE', encoding: 'utf8' });
-        await P.Share.share({ title: 'Registro de cambios', url: w.uri, dialogTitle: 'Enviar o guardar el registro' });
+        let b64 = ''; for (let i = 0; i < datos.length; i += 0x8000) b64 += String.fromCharCode.apply(null, datos.subarray(i, i + 0x8000));
+        const w = await P.Filesystem.writeFile({ path: nombre, data: btoa(b64), directory: 'CACHE' });
+        await P.Share.share({ title: 'Datos ' + eq, url: w.uri, dialogTitle: 'Enviar o guardar el Excel' });
       } catch (e) { if (!/cancel/i.test(String(e && e.message || e))) avisar('No se pudo exportar: ' + (e && e.message || e)); }
       return;
     }
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.href = URL.createObjectURL(new Blob([datos], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     a.download = nombre; document.body.append(a); a.click(); a.remove();
   }
-  $('#reg-exportar').addEventListener('click', exportarRegistro);
+  $('#reg-exportar').addEventListener('click', exportarExcel);
+  $('#cu-exportar').addEventListener('click', exportarExcel);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) revisarAcceso(); });
+
+
+  // ---------- Cultivos (riego por sectores, de a uno, con un caudalímetro) ----------
+  // Topics: cultivos (estado), cultivos/config (ajustes), riegos (registro de riegos).
+  let cuCfg = null, cuEst = null, cuSel = leer('dm.cuSel', 0), cuEditando = false;
+  let riegos = [], riegosPartes = null, cuVivo = {};
+  const CORTE_TXT = ['humedad', 'litros', 'humedad o litros'];
+  const nCultivos = () => (cfgEquipo && cfgEquipo.cultivos) || 0;
+  const fmt1 = (v) => v == null ? '--' : Number(v).toFixed(1).replace('.', ',');
+
+  function navCultivos(){
+    const hay = nCultivos() > 0;
+    $('nav button[data-vista=cultivos]').hidden = !hay;
+    if (!hay && $('#v-cultivos').classList.contains('on')) mostrarVista('inicio');
+    if (cuSel >= nCultivos()) cuSel = 0;
+  }
+  function vivoCultivos(){                          // puntos en vivo para el gráfico de suelo
+    const ahora = Date.now();
+    (cuEst.c || []).forEach((c, i) => {
+      const l = cuVivo[i] || (cuVivo[i] = []);
+      if (c.s != null && (!l.length || ahora - l[l.length - 1].t > 60e3)) l.push({ t: ahora, s: c.s, r: cuEst.r === i });
+      cuVivo[i] = l.filter(p => ahora - p.t < MAX_MS);
+    });
+  }
+  function pintarCultivos(){
+    navCultivos();
+    const n = nCultivos(); if (!n || !cuCfg) return;
+    const e = cuEst || { r: -1, c: [] };
+    // Resumen
+    $('#cu-modo').textContent = estado ? (estado.modo === 'auto' ? 'Automático' : 'Manual') : '—';
+    $('#cu-modo').className = 'pill ' + (estado && estado.modo === 'auto' ? 'ok' : 'aviso');
+    $('#cu-estado').textContent = e.r >= 0
+      ? 'Regando ' + cuCfg[e.r].n + ' · ' + fmt1(e.q) + ' L/min · ' + fmt1(e.lr) + ' L en ' + Math.floor((e.rs || 0) / 60) + ' min'
+      : 'Ningún cultivo regando' + (e.lsv > 2 ? ' · ⚠ pasó agua sin válvula abierta (' + fmt1(e.lsv) + ' L hoy)' : '');
+    // Solapas
+    const tabs = $('#cu-tabs'); tabs.innerHTML = '';
+    cuCfg.forEach((c, i) => {
+      const b = document.createElement('button'); b.className = 'equipo' + (i === cuSel ? ' on' : '');
+      const est = e.c[i] || {}, dot = document.createElement('i');
+      dot.className = e.r === i ? 'reg' : !est.ok ? 'mal' : est.s != null && est.s <= c.on ? 'seco' : 'ok';
+      b.append(dot, document.createTextNode(c.n));
+      b.addEventListener('click', () => { cuSel = i; guardar('dm.cuSel', i); cuEditando = false; pintarCultivos(); cargarCultivoCfg(); pintarRiegos(); });
+      tabs.append(b);
+    });
+    // Ficha del cultivo elegido
+    const c = cuCfg[cuSel], est = e.c[cuSel] || {};
+    $('#cu-nombre').textContent = c.n;
+    const reg = e.r === cuSel;
+    $('#cu-pill').textContent = reg ? 'Regando' : 'Válvula cerrada';
+    $('#cu-pill').className = 'pill ' + (reg ? 'ok' : '');
+    $('#cu-suelo').firstChild.nodeValue = est.ok && est.s != null ? Math.round(est.s) : '--';
+    $('#cu-lhoy').firstChild.nodeValue = est.lh != null ? fmt1(est.lh) : '--';
+    $('#cu-lmes').textContent = est.lm != null ? fmt1(est.lm) + ' / ' + fmt1(est.lt) + ' L' : '—';
+    $('#cu-regla').textContent = c.a
+      ? 'debajo de ' + c.on + ' %, corta por ' + CORTE_TXT[c.m] + (c.m !== 1 ? ' (' + c.off + ' %)' : '') + (c.m !== 0 ? ' (' + c.l + ' L)' : '')
+      : 'solo a mano (automático desactivado)';
+    $('#cu-curso').textContent = reg ? fmt1(e.lr) + ' L · ' + fmt1(e.q) + ' L/min · ' + Math.floor((e.rs || 0) / 60) + ' min' : '—';
+    $('#cu-regar').disabled = !estado || estado.modo === 'auto';
+    dibujarSuelo();
+    const bloq = !puedeAdmin();
+    $$('#f-cultivo input, #f-cultivo select, #f-cultivo button').forEach(x => x.disabled = bloq);
+    $('#cf-admin').hidden = !bloq;
+  }
+  function cargarCultivoCfg(){
+    if (!cuCfg || !cuCfg[cuSel]) return;
+    const c = cuCfg[cuSel];
+    $('#cf-nombre').value = c.n; $('#cf-modo').value = c.m; $('#cf-on').value = c.on; $('#cf-off').value = c.off;
+    $('#cf-litros').value = c.l; $('#cf-max').value = c.t; $('#cf-activo').checked = !!c.a;
+    cuEditando = false;
+  }
+  $('#f-cultivo').addEventListener('input', () => cuEditando = true);
+  $('#f-cultivo').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (!puedeAdmin()) { avisar('Solo un administrador'); return; }
+    const n = $('#cf-nombre').value.trim(), on = +$('#cf-on').value, off = +$('#cf-off').value, l = +$('#cf-litros').value, t = +$('#cf-max').value;
+    if (!nombreValido(n)) { avisar('Nombre: hasta 16 letras o números'); return; }
+    if (!(on >= 0 && off <= 100 && on < off)) { avisar('«Riega debajo de» tiene que ser menor que «Corta arriba de»'); return; }
+    if (!(l >= 1 && l <= 5000)) { avisar('Litros entre 1 y 5000'); return; }
+    if (!(t >= 1 && t <= 240)) { avisar('Máximo entre 1 y 240 min'); return; }
+    const msg = 'n=' + n + ',m=' + $('#cf-modo').value + ',on=' + on + ',off=' + off + ',l=' + l + ',t=' + t + ',a=' + ($('#cf-activo').checked ? 1 : 0);
+    if (ordenar('cultivo/' + (cuSel + 1) + '/config', msg)) { avisar('Ajustes de ' + n + ' enviados'); cuEditando = false; }
+  });
+  $('#cu-regar').addEventListener('click', () => { if (ordenar('cultivo/' + (cuSel + 1) + '/regar', 'on')) avisar('Regando ' + cuCfg[cuSel].n); });
+  $('#cu-cortar').addEventListener('click', () => { if (ordenar('cultivo/' + (cuSel + 1) + '/regar', 'off')) avisar('Cortando el riego'); });
+
+  // Gráfico de humedad de suelo del cultivo elegido (48 h) con las líneas de riega/corta
+  function dibujarSuelo(){
+    const svg = $('#cu-svg'); if (!svg || !cuCfg) return;
+    const W = svg.clientWidth || 340, H = 150, m = { l: 40, r: 10, t: 10, b: 18 }, w = W - m.l - m.r, h = H - m.t - m.b;
+    const ahora = Date.now(), t0 = ahora - 48 * 3600e3, g = G(cfg.nodo), i = cuSel, c = cuCfg[i];
+    const pts = g.hist.filter(p => p.s && p.s[i] != null).map(p => ({ t: p.t, s: p.s[i] }));
+    const ult = pts.length ? pts[pts.length - 1].t : 0;
+    (cuVivo[i] || []).filter(p => p.t > ult).forEach(p => pts.push(p));
+    const X = (t) => m.l + (t - t0) / (ahora - t0) * w, Y = (v) => m.t + (1 - v / 100) * h;
+    let o = '';
+    [0, 50, 100].forEach(v => { o += `<line class="rejilla" x1="${m.l}" x2="${m.l + w}" y1="${Y(v)}" y2="${Y(v)}"/><text class="eje" x="${m.l - 4}" y="${Y(v) + 3}" text-anchor="end">${v}%</text>`; });
+    for (let k = 1; k < 48; k++) { const tt = t0 + k * 3600e3, hh = new Date(tt).getHours(); if (hh % 12) continue;
+      o += `<text class="eje" x="${X(tt)}" y="${H - 4}" text-anchor="middle">${String(hh).padStart(2, '0')}:00</text>`; }
+    o += `<line class="spt" style="stroke:var(--azul)" x1="${m.l}" x2="${m.l + w}" y1="${Y(c.on)}" y2="${Y(c.on)}"/>`;
+    if (c.m !== 1) o += `<line class="spt" style="stroke:var(--verde)" x1="${m.l}" x2="${m.l + w}" y1="${Y(c.off)}" y2="${Y(c.off)}"/>`;
+    // franjas de riego (del registro de riegos)
+    riegos.filter(r => r.c === c.n && r.fin > t0).forEach(r => {
+      const x1 = X(Math.max(r.ini, t0)), x2 = X(Math.min(r.fin || ahora, ahora));
+      o += `<rect class="lr" x="${x1}" y="${m.t}" width="${Math.max(2, x2 - x1)}" height="${h}"/>`;
+    });
+    let d = '', ant = null;
+    pts.forEach(p => { d += (!ant || p.t - ant.t > 25 * 60e3 ? 'M' : 'L') + X(p.t).toFixed(1) + ' ' + Y(p.s).toFixed(1) + (!ant || p.t - ant.t > 25 * 60e3 ? 'l0 0' : ''); ant = p; });
+    o += `<path class="ls" d="${d}"/>`;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = o;
+  }
+
+  // Registro de riegos: "inicio|fin|cultivo|litros|segundos|quien|motivo"
+  function lineaRiego(l){
+    const p = String(l).split('|');
+    return { ini: (+p[0] || 0) * 1000, fin: (+p[1] || 0) * 1000, c: p[2] || '', l: parseFloat(p[3]) || 0, seg: +p[4] || 0,
+             q: p[5] === 'automatico' ? 'automático' : (p[5] || ''), mot: p.slice(6).join('|') };
+  }
+  function pedirRiegos(){
+    if (!cliente || !cliente.connected || !nCultivos()) return;
+    riegosPartes = { rec: {} };
+    cliente.publish(base() + 'cmd/riegos', '1', { qos: 1, retain: false });
+    setTimeout(() => { if (riegosPartes) armarRiegos(); }, 6000);
+  }
+  function parteRiegos(m){
+    if (!riegosPartes) riegosPartes = { rec: {} };
+    riegosPartes.rec[m.p] = m.l || [];
+    if (Object.keys(riegosPartes.rec).length >= m.de) armarRiegos();
+  }
+  function armarRiegos(){
+    const todo = [];
+    Object.keys(riegosPartes.rec).sort((a, b) => a - b).forEach(k => riegosPartes.rec[k].forEach(l => todo.push(lineaRiego(l))));
+    riegos = todo.reverse(); riegosPartes = null; pintarRiegos();
+  }
+  function pintarRiegos(){
+    const c = $('#cu-riegos'); if (!c || !cuCfg) return;
+    const nombre = cuCfg[cuSel] && cuCfg[cuSel].n, lista = riegos.filter(r => r.c === nombre).slice(0, 15);
+    if (!lista.length) { c.innerHTML = '<p class="nota">Sin riegos registrados para este cultivo.</p>'; dibujarSuelo(); return; }
+    c.innerHTML = '';
+    lista.forEach(r => {
+      const d = document.createElement('div'); d.className = 'riego-item';
+      const b = document.createElement('b'); b.textContent = fmt1(r.l) + ' L en ' + Math.round(r.seg / 60) + ' min';
+      const sm = document.createElement('small'); sm.textContent = (r.ini ? fecha(new Date(r.ini)) : 'sin hora') + ' · ' + r.q + ' · ' + r.mot;
+      d.append(b, sm); c.append(d);
+    });
+    dibujarSuelo();
+  }
+  $('#cu-riegos-act').addEventListener('click', pedirRiegos);
 
   // ---------- Ajustes ----------
   // Mismos límites que valida el ESP32 (si no, lo rechaza y manda alarma)

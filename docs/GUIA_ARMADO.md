@@ -181,3 +181,33 @@ Publicando en `vivero/nodo1/cmd/config/<clave>` (quedan guardados en el ESP32):
 | `riego_pausa_min` | 30 min | Pausa mínima entre riegos automáticos |
 
 > **Ojo:** por ahora el riego automático usa la **humedad del aire** (DHT11). Es provisorio: para regar bien hace falta el sensor capacitivo de humedad de suelo (va en GPIO 32–39).
+
+---
+
+## 7. Riego por cultivos (5 sectores, de a uno, con un caudalímetro)
+
+Archivo nuevo: **`cultivos.h`** (va en la misma carpeta que `vivero.ino`; en el Arduino IDE aparece como otra pestaña).
+Solo en **ESP32** (el 8266 tiene una sola entrada analógica: ahí los cultivos se desactivan solos).
+
+| Cultivo | Válvula (relé) | Sensor de suelo capacitivo |
+|---|---|---|
+| 1 | GPIO 13 | GPIO 32 |
+| 2 | GPIO 14 | GPIO 34 |
+| 3 | GPIO 18 | GPIO 35 |
+| 4 | GPIO 19 | GPIO 36 (VP) |
+| 5 | GPIO 23 | GPIO 39 (VN) |
+| Caudalímetro (señal) | GPIO 22 | ⚠ si se alimenta con 5 V, bajar la señal a 3,3 V (divisor 10 kΩ / 20 kΩ) |
+| Bomba o válvula general | el relé de RIEGO (GPIO 27) | se prende con cualquier cultivo (`USAR_BOMBA_GENERAL 1`) |
+
+**Cómo funciona**
+- Se riega **de a un cultivo por vez**; los litros del caudalímetro se le cuentan al que tiene la válvula abierta.
+- En automático riega primero al **más seco** que esté por debajo de su "riega debajo de".
+- Corta por **humedad**, por **litros** o por **lo que pase primero** (se elige por cultivo en la app). Siempre corta por **tiempo máximo**.
+- A mano (modo manual) no corta por humedad: corta por litros, tiempo máximo o "Cortar".
+- **Marcha en seco**: si la bomba anda y el caudalímetro no cuenta agua en **10 s** (`SIN_CAUDAL_S`), corta todo y avisa.
+- **Pérdida**: si pasa agua con todas las válvulas cerradas, avisa.
+- Litros de hoy, del mes y total por cultivo (se guardan aunque se corte la luz).
+
+**Modo demostración** (`DEMO_CULTIVOS 1` en `config.h`, viene así): simula los sensores de suelo y el caudal para mostrarlo sin instalar nada. Para el equipo real: `DEMO_CULTIVOS 0`.
+
+**Calibrar los sensores de suelo** (equipo real): mirar en el monitor serie la lectura con el sensor **al aire** (`SUELO_SECO_RAW`) y **en un vaso de agua** (`SUELO_MOJADO_RAW`) y poner esos números en `config.h`.

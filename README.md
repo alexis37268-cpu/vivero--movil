@@ -12,7 +12,7 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 ## Estructura
 | Carpeta | Qué hay |
 |---|---|
-| `firmware/vivero/` | Código para ESP32 y ESP8266 (`vivero.ino`, `config.h`, `ca_cert.h`, `secrets.example.h`, `prefs8266.h`) |
+| `firmware/vivero/` | Código para ESP32 y ESP8266 (`vivero.ino`, `cultivos.h`, `config.h`, `ca_cert.h`, `secrets.example.h`, `prefs8266.h`) |
 | `wokwi/` | Circuito para el simulador (`diagram.json`, `libraries.txt`) |
 | `docs/GUIA_ARMADO.md` | Guía de armado para el equipo real |
 
@@ -44,6 +44,9 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 | `cmd/config/riego_pausa_min` | número | min (por defecto 30) |
 | `cmd/estado` | cualquier cosa | Pide el estado al instante |
 | `cmd/historial` | cualquier cosa | Pide el historial para el gráfico de la app |
+| `cmd/cultivo/<n>/regar` | `on` / `off` (+ `;usuario`) | Cultivo n (1 a 5): `on` solo en manual, `off` siempre |
+| `cmd/cultivo/<n>/config` | `n=Lechuga,m=0,on=35,off=60,l=50,t=15,a=1` (+ `;usuario`) | Ajustes del cultivo (administrador). m: 0 humedad, 1 litros, 2 lo que pase primero |
+| `cmd/riegos` | cualquier cosa | Pide el registro de riegos (responde en `riegos`, en partes) |
 | `cmd/registro` | cualquier cosa | Pide el registro de cambios (responde en `registro`, en partes) |
 | `cmd/usuario/alta` | `nombre;rol;hash;quien` | Alta o cambio de usuario (rol `admin` u `operario`). Solo un administrador (el primero siempre es admin) |
 | `cmd/usuario/baja` | `nombre;quien` | Baja de usuario (no se puede borrar al único administrador) |
@@ -146,3 +149,12 @@ La misma app publicada en GitHub Pages: **https://alexis37268-cpu.github.io/vive
 - **Solo entran administradores** (los operarios usan la app del celular).
 - La pestaña Clima usa el archivo del **robot del clima** (workflow *Clima (robot)*, cada 15 min, rama `datos`), porque el navegador no deja leer la REM directo. Si el robot se para, la página avisa "Datos del clima de hace X".
 - Activarla una sola vez: Settings → Pages → Source: **GitHub Actions**.
+
+## Riego por cultivos (`firmware/vivero/cultivos.h`)
+
+5 cultivos (configurable, solo ESP32), cada uno con su válvula y su sensor de suelo; **de a uno por vez** con **un solo caudalímetro**; bomba o válvula general en el relé de RIEGO.
+Corte por humedad, litros o lo que pase primero; tiempo máximo; **marcha en seco** (sin caudal 10 s = corta); aviso de pérdida.
+Topics: `cultivos` (estado: humedad, litros hoy/mes/total, quién riega, caudal), `cultivos/config` (ajustes), `riegos` y `riegos/nuevo` (`inicio|fin|cultivo|litros|segundos|quien|motivo`).
+`DEMO_CULTIVOS 1` simula suelo y caudal para mostrarlo sin sensores. Pines y calibración: `docs/GUIA_ARMADO.md`, punto 7.
+
+**Exportar a Excel**: la app arma un `.xlsx` con las hojas Temp y humedad (con el suelo de cada cultivo), Riegos (con litros), Litros por cultivo, Cambios y Clima.

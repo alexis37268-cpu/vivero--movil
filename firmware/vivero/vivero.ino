@@ -95,6 +95,9 @@ uint32_t cierreHasta = 0;
 bool     cierreAvisado = false;
 bool     climaCierreActivo();
 void     registrar(const String& quien, const String& que);
+#if N_CULTIVOS > 0
+int8_t   cultivoSueloProm(uint8_t i);   // en cultivos.h
+#endif
 
 // Arma un topic: t("estado") -> "vivero/nodo1/estado"
 String t(const char* sub) { return String(TOPIC_BASE "/") + sub; }
@@ -143,6 +146,7 @@ void publicarConfig() {
   j += ",\"hist\":true";                     // este equipo guarda historial para el grafico
   j += ",\"clima_cierra\":" + String(cfg.climaCierra);
   j += ",\"usuarios\":true";                  // este equipo maneja usuarios y registro
+  j += ",\"cultivos\":" + String(N_CULTIVOS);   // riego por cultivos (0 = riego unico)
   j += "}";
   publicar(t("config"), j, true);
 }
@@ -305,6 +309,9 @@ void riegoSet(bool encender, const char* motivo) {
 }
 
 void riegoTick() {
+#if N_CULTIVOS > 0
+  return;                            // con cultivos, los cortes los hace cultivosTick()
+#endif
   // Corte de seguridad: vale en automatico y en manual
   if (riegoOn && millis() - riegoDesde > (unsigned long)cfg.riegoMaxMin * 60000UL) {
     riegoSet(false, "tiempo maximo");
@@ -346,7 +353,12 @@ void leerSensor() {
 //  aguanta una cantidad limitada de escrituras.
 // -------------------------------------------------------------
 const int16_t SIN_DATO = INT16_MIN;        // hueco (sensor caido o equipo apagado)
-struct PuntoHist { int16_t t, h; };        // en decimas: 234 = 23,4
+struct PuntoHist {                         // en decimas: 234 = 23,4
+  int16_t t, h;
+#if N_CULTIVOS > 0
+  int8_t  s[N_CULTIVOS];                   // humedad de suelo de cada cultivo (%), -128 = sin dato
+#endif
+};
 struct CabHist   { uint16_t cab, cant; uint32_t epoch; };
 
 PuntoHist hist[HIST_N];
@@ -362,7 +374,10 @@ uint32_t ahoraEpoch() {                    // 0 si todavia no hay hora de intern
 }
 
 void histAgregar(int16_t t, int16_t h) {
-  hist[histCab] = { t, h };
+  hist[histCab].t = t; hist[histCab].h = h;
+#if N_CULTIVOS > 0
+  for (uint8_t i = 0; i < N_CULTIVOS; i++) hist[histCab].s[i] = (t == SIN_DATO) ? -128 : cultivoSueloProm(i);
+#endif
   histCab = (histCab + 1) % HIST_N;
   if (histCant < HIST_N) histCant++;
 }
@@ -446,7 +461,13 @@ void publicarHistorial() {
       const PuntoHist& q = hist[(inicio + k) % HIST_N];
       if (k > desde) j += ',';
       if (q.t == SIN_DATO) j += "null";
-      else j += "[" + String(q.t) + "," + String(q.h) + "]";
+      else {
+        j += "[" + String(q.t) + "," + String(q.h);
+#if N_CULTIVOS > 0
+        for (uint8_t i = 0; i < N_CULTIVOS; i++) j += q.s[i] == -128 ? String(",null") : "," + String(q.s[i]);
+#endif
+        j += "]";
+      }
     }
     j += "]}";
     publicar(t("historial"), j, false);
@@ -531,41 +552,32 @@ void publicarUsuarios() {
   publicar(t("usuarios"), j, true);
 }
 
-void registrar(const String& quien, const String& que) {
-  String linea = String(ahoraEpoch()) + "|" + limpiar(quienTxt(quien), 20) + "|" + limpiar(que, 60);
-  Serial.println("[REG] " + linea);
-  publicar(t("registro/nuevo"), linea, false);     // la app lo ve al instante
+// Archivos de lineas con rotacion: 2 archivos de REG_POR_ARCHIVO lineas.
+// Cuando el actual se llena, el viejo se borra y el actual pasa a ser el viejo.
+// (Lo usan el registro de cambios y el de riegos.)
+void anotarLinea(const char* actual, const char* anterior, uint16_t& lineas, const String& linea) {
   if (!fsOk) return;
-  if (regLineas >= REG_POR_ARCHIVO) {               // se llena: el viejo se borra, el actual pasa a viejo
-    LittleFS.remove(REG_ANTERIOR);
-    LittleFS.rename(REG_ACTUAL, REG_ANTERIOR);
-    regLineas = 0;
+  if (lineas >= REG_POR_ARCHIVO) {
+    LittleFS.remove(anterior);
+    LittleFS.rename(actual, anterior);
+    lineas = 0;
   }
-  File f = LittleFS.open(REG_ACTUAL, "a");
-  if (f) { f.println(linea); f.close(); regLineas++; }
+  File f = LittleFS.open(actual, "a");
+  if (f) { f.println(linea); f.close(); lineas++; }
 }
 
-void registroIniciar() {
-#if defined(ESP8266)
-  fsOk = LittleFS.begin();                          // ya montada por prefs8266 (no pasa nada si se repite)
-#else
-  fsOk = LittleFS.begin(true);                      // true = la formatea la primera vez
-#endif
-  if (!fsOk) { Serial.println("[REG] no se pudo montar la flash: el registro no se guarda"); return; }
-  File f = LittleFS.open(REG_ACTUAL, "r");
-  regLineas = 0;
-  if (f) { while (f.available()) if (f.read() == '\n') regLineas++; f.close(); }
+uint16_t contarLineas(const char* archivo) {
+  uint16_t n = 0;
+  File f = LittleFS.open(archivo, "r");
+  if (f) { while (f.available()) if (f.read() == '\n') n++; f.close(); }
+  return n;
 }
 
-// Manda el registro en partes chicas (del mas viejo al mas nuevo)
-void publicarRegistro() {
+// Manda los dos archivos en partes chicas (del mas viejo al mas nuevo)
+void publicarLineas(const char* anterior, const char* actual, const String& topic) {
   if (!mqtt.connected()) return;
-  const char* archivos[2] = { REG_ANTERIOR, REG_ACTUAL };
-  uint16_t total = 0;
-  if (fsOk) for (auto a : archivos) {
-    File f = LittleFS.open(a, "r");
-    if (f) { while (f.available()) if (f.read() == '\n') total++; f.close(); }
-  }
+  const char* archivos[2] = { anterior, actual };
+  uint16_t total = fsOk ? contarLineas(anterior) + contarLineas(actual) : 0;
   uint16_t partes = total ? (total + REG_POR_MENSAJE - 1) / REG_POR_MENSAJE : 1;
   uint16_t p = 0, enParte = 0;
   String j = "{\"p\":0,\"de\":" + String(partes) + ",\"l\":[";
@@ -578,15 +590,34 @@ void publicarRegistro() {
       if (enParte) j += ',';
       j += "\"" + linea + "\"";
       if (++enParte >= REG_POR_MENSAJE) {
-        j += "]}"; publicar(t("registro"), j, false);
+        j += "]}"; publicar(topic, j, false);
         p++; enParte = 0;
         j = "{\"p\":" + String(p) + ",\"de\":" + String(partes) + ",\"l\":[";
       }
     }
     f.close();
   }
-  if (enParte || total == 0) { j += "]}"; publicar(t("registro"), j, false); }
+  if (enParte || total == 0) { j += "]}"; publicar(topic, j, false); }
 }
+
+void registrar(const String& quien, const String& que) {
+  String linea = String(ahoraEpoch()) + "|" + limpiar(quienTxt(quien), 20) + "|" + limpiar(que, 60);
+  Serial.println("[REG] " + linea);
+  publicar(t("registro/nuevo"), linea, false);     // la app lo ve al instante
+  anotarLinea(REG_ACTUAL, REG_ANTERIOR, regLineas, linea);
+}
+
+void registroIniciar() {
+#if defined(ESP8266)
+  fsOk = LittleFS.begin();                          // ya montada por prefs8266 (no pasa nada si se repite)
+#else
+  fsOk = LittleFS.begin(true);                      // true = la formatea la primera vez
+#endif
+  if (!fsOk) { Serial.println("[REG] no se pudo montar la flash: el registro no se guarda"); return; }
+  regLineas = contarLineas(REG_ACTUAL);
+}
+
+void publicarRegistro() { publicarLineas(REG_ANTERIOR, REG_ACTUAL, t("registro")); }
 
 // Reseteo desde el tablero (RIEGO + VENTEO 10 s): para cuando nadie recuerda
 // el PIN del administrador. Solo lo puede hacer alguien parado frente al equipo.
@@ -652,6 +683,8 @@ void ordenUsuario(const String& accion, const String& crudo) {
   publicarUsuarios();
 }
 
+#include "cultivos.h"      // riego por cultivos (si N_CULTIVOS > 0)
+
 // -------------------------------------------------------------
 //  Alerta meteorologica (la manda el robot del SMN por MQTT)
 // -------------------------------------------------------------
@@ -697,11 +730,13 @@ void controlAuto() {
     venteoCerrar(); registrar("automatico", "cierra el venteo (" + String(temp, 1) + " C)");
   }
 
-  // Riego (PROVISORIO: usa humedad del aire hasta tener sensor de suelo)
+#if N_CULTIVOS == 0
+  // Riego unico (sin cultivos): usa la humedad del aire
   bool pausaCumplida = !riegoAlgunaVez ||
       (millis() - riegoFinUltimo >= (unsigned long)cfg.riegoPausaMin * 60000UL);
   if (!riegoOn && hum <= cfg.humRiegoOn && pausaCumplida) { riegoSet(true,  "auto"); registrar("automatico", "empieza a regar (" + String(hum, 0) + " %)"); }
   else if (riegoOn && hum >= cfg.humRiegoOff)             { riegoSet(false, "auto"); registrar("automatico", "termina de regar (" + String(hum, 0) + " %)"); }
+#endif   // con cultivos, el riego lo maneja cultivosTick()
 }
 
 // -------------------------------------------------------------
@@ -784,11 +819,24 @@ void alRecibir(char* topic, byte* payload, unsigned int largo) {
     else if (msg == "abrir")  { venteoAbrir();  registrar(quien, "abre el venteo"); }
     else if (msg == "cerrar") { venteoCerrar(); registrar(quien, "cierra el venteo"); }
   }
+#if N_CULTIVOS > 0
+  else if (cmd == "riego") {                // con cultivos: "off" corta el que este regando
+    if (msg == "off") { if (regando >= 0) cultivoCerrar("cortado a mano", quien); }
+    else alarma("riego: elegir el cultivo en la pestana Cultivos");
+  }
+  else if (cmd.startsWith("cultivo/")) {
+    ordenCultivo(cmd.substring(8), crudo);
+  }
+  else if (cmd == "riegos") {               // la app pide el registro de riegos
+    publicarRiegos();
+  }
+#else
   else if (cmd == "riego") {
     if (msg == "off") { if (riegoOn) registrar(quien, "corta el riego"); riegoSet(false, "orden"); }   // APAGAR siempre vale
     else if (modoAuto) { alarma("riego: orden ignorada, esta en automatico"); registrar(quien, "pide regar (ignorado: automatico)"); }
     else if (msg == "on") { riegoSet(true, "orden manual"); registrar(quien, "riega"); }
   }
+#endif
   else if (cmd.startsWith("config/")) {
     aplicarConfig(cmd.substring(7), msg.toFloat(), quien);
   }
@@ -854,6 +902,10 @@ void mqttTick() {
     publicarConfig();
     publicarEstado();
     publicarUsuarios();
+#if N_CULTIVOS > 0
+    publicarCultivosCfg();
+    publicarCultivos();
+#endif
   } else {
     // -2 = no conecta (red/TLS/certificado), 4 = usuario o clave mal, 5 = no autorizado
     Serial.printf("fallo, codigo %d. Reintento en %lus\n",
@@ -988,8 +1040,13 @@ void cambiarModo(const char* origen) {
 
 void pulsoRiego() {
   if (modoAuto) { alarma("pulsador RIEGO ignorado: esta en automatico"); return; }
+#if N_CULTIVOS > 0
+  if (regando >= 0) cultivoCerrar("pulsador", "panel");      // con cultivos: el pulsador corta el riego
+  else alarma("pulsador RIEGO: elegir el cultivo desde la app");
+#else
   riegoSet(!riegoOn, "pulsador");
   registrar("panel", riegoOn ? "riega" : "corta el riego");
+#endif
 }
 
 void pulsoVenteo() {
@@ -1068,6 +1125,9 @@ void setup() {
   histCargar();
   usuariosCargar();
   registroIniciar();
+#if N_CULTIVOS > 0
+  cultivosIniciar();
+#endif
   Serial.printf("[CONFIG] abrir %.1f / cerrar %.1f °C, riego %.0f-%.0f %%, recorrido %u s, modo %s\n",
                 cfg.tempAbrir, cfg.tempCerrar, cfg.humRiegoOn, cfg.humRiegoOff,
                 cfg.recorridoS, modoAuto ? "auto" : "manual");
@@ -1115,6 +1175,9 @@ void loop() {
 
   venteoTick();
   riegoTick();
+#if N_CULTIVOS > 0
+  cultivosTick();
+#endif
   botonesTick();
   histTick();
 

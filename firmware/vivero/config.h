@@ -91,6 +91,23 @@
 // Pulsadores: contacto a GND al apretar (se usa pull-up interno).
 // En el ESP8266, D0 no tiene pull-up: por eso ahi va un rele y no un pulsador.
 
+// ---------- Cultivos (riego por sectores, de a uno, con un solo caudalimetro) ----------
+#if defined(ESP8266)
+  #define N_CULTIVOS 0            // el 8266 tiene una sola entrada analogica: sin cultivos
+#else
+  #define N_CULTIVOS 5            // cuantos cultivos/sectores (hasta 5 con estos pines)
+  #define PINES_VALVULAS { 13, 14, 18, 19, 23 }   // un rele (valvula) por cultivo
+  #define PINES_SUELO    { 32, 34, 35, 36, 39 }   // sensores de suelo capacitivos (ADC1: andan con WiFi)
+  #define PIN_CAUDAL     22                       // caudalimetro (cable de senal, pulsos)
+#endif
+#define DEMO_CULTIVOS       1     // 1 = SIMULA suelo y caudal (para mostrar sin sensores). 0 = equipo real
+#define USAR_BOMBA_GENERAL  1     // 1 = el rele de RIEGO (bomba o valvula general) se prende con cualquier cultivo
+#define PULSOS_POR_LITRO    450.0 // YF-S201 (revisar el dato del caudalimetro que se compre)
+#define SIN_CAUDAL_S        10    // bomba andando y sin agua tantos segundos = corta todo (marcha en seco)
+#define SUELO_SECO_RAW      3000  // lectura del sensor al aire (calibrar con el sensor real)
+#define SUELO_MOJADO_RAW    1300  // lectura con el sensor en un vaso de agua (calibrar)
+#define PAUSA_CULTIVO_MIN   5     // espera minima entre dos riegos automaticos del mismo cultivo
+
 // ---------- Tiempos ----------
 #define ANTIRREBOTE_MS           50UL      // pulsadores: estable 50 ms = cambio real
 #define TIEMPO_MUERTO_MS         300UL     // motor parado antes de invertir el giro
@@ -103,7 +120,7 @@
 #define HIST_N            288    // puntos guardados: 288 x 10 min = 48 h
 #define HIST_PASO_S       600    // un punto (promedio) cada 10 min
 #define HIST_GRABAR_CADA  6      // se graba en la flash cada 6 puntos = 1 h
-#define HIST_POR_MENSAJE  48     // puntos por mensaje MQTT (se manda en partes)
+#define HIST_POR_MENSAJE  32     // puntos por mensaje MQTT (se manda en partes)
 
 // ---------- Usuarios y registro de cambios ----------
 #define MAX_USUARIOS      12     // usuarios con nombre y PIN (los da de alta el administrador)
