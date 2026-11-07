@@ -4,7 +4,7 @@
 //  Simula, dentro de la misma app, un broker MQTT con:
 //   - Vivero (nodo1): temperatura, humedad, venteo, 5 cultivos con
 //     litros y riegos, usuarios de prueba, registro e historial de 48 h.
-//   - Hibernaculo 1 (nodo2) por LoRa.
+//   - 4 hibernaculos (nodo2 a nodo5) por LoRa, con lo basico.
 //   - Clima de afuera y una alerta de ejemplo.
 //  Usa los mismos mensajes que el equipo real, asi que la app no cambia.
 //
@@ -40,7 +40,8 @@
       if (retener) retenidos[t] = m;
       if (subs.some(s => coincide(s, t))) setTimeout(() => vivo && entregar(t, m), 15);
     };
-    const B1 = 'vivero/nodo1/', B2 = 'vivero/nodo2/';
+    const B1 = 'vivero/nodo1/';
+    let nombre1 = 'Vivero';
 
     // Aire: ciclo del dia (minimo a la madrugada, maximo a la tarde)
     const ciclo = (ms) => { const d = new Date(ms); return Math.sin((d.getHours() + d.getMinutes() / 60 - 9) / 24 * 2 * Math.PI); };
@@ -49,7 +50,7 @@
     // ---------------- Vivero ----------------
     const st = { temp: +aireT(Date.now()).toFixed(1), hum: +aireH(Date.now()).toFixed(1), sensor_ok: true, venteo: 'cerrado', riego: 'off', modo: 'auto', rssi: -58, uptime_s: 3600, clima_cierre: false };
     const cfg = { temp_abrir: 28, temp_cerrar: 24, hum_riego_on: 40, hum_riego_off: 60, motor_max_s: 40, riego_max_min: 10, riego_pausa_min: 30,
-                  recorrido: true, hist: true, clima_cierra: 1, usuarios: true, cultivos: 5 };
+                  recorrido: true, hist: true, clima_cierra: 1, usuarios: true, renombrar: true, cultivos: 5 };
     const cc = [['Lechuga', 0, 35, 60, 40, 15], ['Tomate', 2, 30, 55, 60, 20], ['Acelga', 1, 35, 60, 25, 15], ['Pimiento', 0, 30, 58, 50, 15], ['Plantines', 2, 40, 65, 15, 10]]
       .map(([n, m, on, off, l, t]) => ({ n, m, on, off, l, t, a: 1 }));
     const ec = cc.map((x, i) => ({ s: [37, 52, 45, 61, 43][i], lh: [12.4, 30.1, 8.5, 18.2, 6.4][i], lm: [212, 486, 96, 163, 61][i], lt: [1214, 2486, 603, 912, 318][i] }));
@@ -108,20 +109,27 @@
     reg.sort((a, b) => (+a.split('|')[0]) - (+b.split('|')[0]));
 
     // ---------------- Hibernaculo (LoRa) ----------------
-    const st2 = { via: 'lora', temp: 19.5, hum: 71, sensor_ok: true, venteo: 'cerrado', riego: 'off', modo: 'auto', rssi: -96, uptime_s: 7200 };
-    const cfg2 = { temp_abrir: 26, temp_cerrar: 22, hum_riego_on: 45, hum_riego_off: 70, motor_max_s: 40, riego_max_min: 10, riego_pausa_min: 30, recorrido: true };
+    // Hibernaculos: cada uno un poco distinto (dT/dH respecto del vivero)
+    const HIB = [['nodo2', 'Hibernáculo 1', -4, 10, -96], ['nodo3', 'Hibernáculo IMProFoP', -2, 6, -88],
+                 ['nodo4', 'Hibernáculo 3', -5, 14, -101], ['nodo5', 'Hibernáculo 4', -3, 8, -93]]
+      .map(([id, nombre, dT, dH, rssi]) => ({ id, nombre, dT, dH,
+        st: { via: 'lora', temp: 19.5, hum: 71, sensor_ok: true, venteo: 'cerrado', riego: 'off', modo: 'auto', rssi, uptime_s: 7200 },
+        cfg: { temp_abrir: 26, temp_cerrar: 22, hum_riego_on: 45, hum_riego_off: 70, motor_max_s: 40, riego_max_min: 10, riego_pausa_min: 30, recorrido: true } }));
+    const pubH = (h) => emitir('vivero/' + h.id + '/estado', JSON.stringify(h.st), true);
 
     // ---------------- Lo guardado de antes (si hay) ----------------
     function guardarSim() {
       try {
-        localStorage.setItem(GUARDA, JSON.stringify({ v: 1, cfg, cfg2, cc, usuarios, modo: st.modo, reg: reg.slice(-300), riegos: riegosL.slice(-100),
+        localStorage.setItem(GUARDA, JSON.stringify({ v: 1, cfg, hib: HIB.map(h => ({ cfg: h.cfg, modo: h.st.modo })), nombre1, cc, usuarios, modo: st.modo, reg: reg.slice(-300), riegos: riegosL.slice(-100),
           ec: ec.map(e => ({ lh: e.lh, lm: e.lm, lt: e.lt })) }));
       } catch (e) {}
     }
     let previo = null;
     try { previo = JSON.parse(localStorage.getItem(GUARDA) || 'null'); } catch (e) {}
     if (previo && previo.v === 1) {
-      Object.assign(cfg, previo.cfg); Object.assign(cfg2, previo.cfg2);
+      Object.assign(cfg, previo.cfg);
+      (previo.hib || []).forEach((x, i) => { if (HIB[i]) { Object.assign(HIB[i].cfg, x.cfg); if (x.modo) HIB[i].st.modo = x.modo; } });
+      if (previo.nombre1) nombre1 = previo.nombre1;
       (previo.cc || []).forEach((c, i) => cc[i] && Object.assign(cc[i], c));
       (previo.ec || []).forEach((e, i) => ec[i] && Object.assign(ec[i], e));
       if (Array.isArray(previo.usuarios) && previo.usuarios.length) usuarios = previo.usuarios;
@@ -131,10 +139,10 @@
     }
 
     function publicarTodo() {
-      emitir(B1 + 'online', 'online', true); emitir(B1 + 'nombre', 'Vivero', true);
-      emitir(B2 + 'online', 'online', true); emitir(B2 + 'nombre', 'Hibernaculo 1', true);
+      emitir(B1 + 'online', 'online', true); emitir(B1 + 'nombre', nombre1, true);
+      HIB.forEach(h => { emitir('vivero/' + h.id + '/online', 'online', true); emitir('vivero/' + h.id + '/nombre', h.nombre, true); });
       pubC(); pubE(); pubU(); pubCuCfg(); pubCu();
-      emitir(B2 + 'config', JSON.stringify(cfg2), true); emitir(B2 + 'estado', JSON.stringify(st2), true);
+      HIB.forEach(h => { emitir('vivero/' + h.id + '/config', JSON.stringify(h.cfg), true); pubH(h); });
     }
 
     // ---------------- Ordenes de la app ----------------
@@ -142,13 +150,24 @@
       const m = /^vivero\/(nodo\d)\/cmd\/(.+)$/.exec(t); if (!m) return;
       const nodo = m[1], cmd = m[2], li = crudo.lastIndexOf(';');
       const valor = (li >= 0 ? crudo.slice(0, li) : crudo).trim(), quien = li >= 0 ? crudo.slice(li + 1).trim() : '', msg = valor.toLowerCase();
-      if (nodo === 'nodo2') {                  // hibernaculo: lo basico
-        if (cmd === 'modo') st2.modo = msg;
-        else if (cmd === 'venteo' && st2.modo === 'manual') st2.venteo = msg === 'abrir' ? 'abierto' : msg === 'cerrar' ? 'cerrado' : st2.venteo;
-        else if (cmd === 'riego' && (st2.modo === 'manual' || msg === 'off')) st2.riego = msg;
-        else if (cmd.startsWith('config/')) { cfg2[cmd.slice(7)] = parseFloat(msg); emitir(B2 + 'config', JSON.stringify(cfg2), true); guardarSim(); }
-        else if (cmd === 'historial') emitir(B2 + 'historial', JSON.stringify({ p: 0, de: 1, n: 0, dt: 600, edad: 0, desde: 0, v: [] }));
-        emitir(B2 + 'estado', JSON.stringify(st2), true);
+      const h = HIB.find(x => x.id === nodo);
+      if (h) {                                 // hibernaculo: lo basico
+        const B = 'vivero/' + h.id + '/', s2 = h.st;
+        if (cmd === 'modo') { s2.modo = msg; guardarSim(); }
+        else if (cmd === 'venteo' && (s2.modo === 'manual' || msg === 'parar')) s2.venteo = msg === 'abrir' ? 'abierto' : msg === 'cerrar' ? 'cerrado' : s2.venteo;
+        else if (cmd === 'riego' && (s2.modo === 'manual' || msg === 'off')) s2.riego = msg;
+        else if (cmd.startsWith('config/')) { h.cfg[cmd.slice(7)] = parseFloat(msg); emitir(B + 'config', JSON.stringify(h.cfg), true); guardarSim(); }
+        else if (cmd === 'historial') emitir(B + 'historial', JSON.stringify({ p: 0, de: 1, n: 0, dt: 600, edad: 0, desde: 0, v: [] }));
+        pubH(h);
+        return;
+      }
+      if (nodo !== 'nodo1') return;
+      if (cmd === 'nombre') {                  // como el equipo real: solo administrador
+        const n = valor.replace(/[|;"\\]/g, ' ').trim().slice(0, 24);
+        if (!esAdmin(quien)) { registrar(quien, 'rechazado: cambio de nombre (no es administrador)'); emitir(B1 + 'alarma', 'nombre: solo un administrador lo cambia'); return; }
+        if (n.length < 2 || n === nombre1) return;
+        registrar(quien, 'cambia el nombre: ' + nombre1 + ' -> ' + n); nombre1 = n; guardarSim();
+        emitir(B1 + 'nombre', nombre1, true);
         return;
       }
       if (cmd === 'modo') { if (msg === 'auto' || msg === 'manual') { st.modo = msg; registrar(quien, msg === 'auto' ? 'pasa a automatico' : 'pasa a manual'); } }
@@ -208,7 +227,7 @@
       // aire: ciclo del dia + ruido
       st.temp = +(aireT(Date.now()) + (st.venteo === 'abierto' ? -1.5 : 0) + (Math.random() - 0.5) * 0.4).toFixed(1);
       st.hum = +(aireH(Date.now()) + (Math.random() - 0.5) * 2).toFixed(1);
-      st2.temp = +(st.temp - 4 + (Math.random() - 0.5) * 0.3).toFixed(1); st2.hum = Math.min(95, +(st.hum + 10).toFixed(1));
+      HIB.forEach(h => { h.st.temp = +(st.temp + h.dT + (Math.random() - 0.5) * 0.3).toFixed(1); h.st.hum = Math.min(95, +(st.hum + h.dH + (Math.random() - 0.5)).toFixed(1)); h.st.uptime_s += PASO_MS / 1000; });
       if (venteoHasta && Date.now() > venteoHasta) { st.venteo = st.venteo === 'abriendo' ? 'abierto' : 'cerrado'; venteoHasta = 0; }
       if (st.modo === 'auto' && !venteoHasta) {
         if (st.temp >= cfg.temp_abrir && st.venteo !== 'abierto') moverVenteo('abrir', 'automatico');
@@ -231,7 +250,7 @@
       // un punto nuevo de historial cada 10 min (como el equipo real)
       if (Date.now() - ultHist >= 600e3) { ultHist = Date.now(); hist.shift(); hist.push([Math.round(st.temp * 10), Math.round(st.hum * 10)].concat(ec.map(e => Math.round(e.s)))); }
       st.uptime_s += PASO_MS / 1000;
-      pubE(); pubCu(); emitir(B2 + 'estado', JSON.stringify(st2), true);
+      pubE(); pubCu(); HIB.forEach(pubH);
     }, PASO_MS);
 
     const cli = {

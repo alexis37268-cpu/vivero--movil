@@ -63,6 +63,21 @@
   nav button svg{width:22px;height:22px}
   nav button.on{color:var(--verde);background:var(--verde-claro)}
   .vista{display:none}.vista.on{display:block}
+  /* Pantalla principal: una tarjeta por equipo (vivero e hibernaculos) */
+  .tit-grilla{color:var(--sobre-bg);font-size:15px;margin:2px 2px 10px;font-weight:700;letter-spacing:.2px}
+  .grilla{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .tarj{display:flex;flex-direction:column;gap:6px;min-height:150px;border:0;border-radius:16px;padding:14px;background:var(--card);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  .tarj:active{transform:scale(.98)}
+  .tarj .tn{display:flex;align-items:center;gap:7px;font-weight:700;font-size:15px;line-height:1.2}
+  .tarj .tn i{flex:none;width:9px;height:9px;border-radius:50%;background:#9aa}
+  .tarj .tn i.ok{background:#2fa84f}.tarj .tn i.mal{background:var(--rojo)}
+  .tarj .tt{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:auto}
+  .tarj .th{font-size:20px;font-weight:600;color:var(--azul);font-variant-numeric:tabular-nums}
+  .tarj .tt span,.tarj .th span{font-size:14px;font-weight:500;color:var(--muted)}
+  .tarj small{color:var(--muted);font-size:12.5px;line-height:1.3}
+  .tarj small.mal{color:var(--rojo);font-weight:600}
+  .volver{flex:none;border:0;border-radius:999px;padding:8px 14px;font:inherit;font-weight:700;font-size:14px;background:var(--card);color:var(--verde);cursor:pointer}
+  nav .nav-pc{display:none}
   .equipos{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
   .equipos::-webkit-scrollbar{display:none}
   .equipo{flex:none;display:inline-flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;font-size:14px;background:rgba(255,255,255,.16);color:var(--sobre-bg)}
@@ -150,6 +165,8 @@
     nav{top:0;bottom:0;right:auto;width:212px;grid-auto-flow:row;grid-template-columns:1fr;grid-auto-rows:min-content;align-content:start;gap:4px;border-top:0;border-right:1px solid var(--line);padding:132px 12px 12px}
     nav button{flex-direction:row;justify-content:flex-start;gap:12px;font-size:15px;padding:11px 14px}
     .solo-pc{display:block}
+    nav .nav-pc{display:flex}
+    .grilla{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
     .toast{bottom:24px}
     #v-inicio.on{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);column-gap:16px;align-items:start;
       grid-template-areas:"aviso aviso" "primer primer" "equipos equipos" "resumen resumen" "medidas medidas" "act act" "graf estado" "graf control"}
@@ -205,11 +222,19 @@
       <input id="ing-pin" class="pinin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
       <div class="botones dos" style="margin-top:14px"><span></span><button type="submit" class="btn prim">Entrar</button></div>
       <p class="nota" id="ing-nota">Pedile el PIN al administrador.</p>
+      <button type="button" class="btn" id="ing-volver" style="width:100%;margin-top:8px">← Volver a los equipos</button>
     </form>
   </section>
 
-  <!-- ============ INICIO ============ -->
-  <section id="v-inicio" class="vista on">
+  <!-- ============ EQUIPOS (pantalla principal) ============ -->
+  <section id="v-equipos" class="vista on">
+    <h2 class="tit-grilla">Equipos</h2>
+    <div class="grilla" id="grilla"></div>
+    <p class="nota" id="grilla-nota" style="color:var(--sobre-bg);opacity:.85">Tocá un equipo para ver sus datos y manejarlo.</p>
+  </section>
+
+  <!-- ============ INICIO (del equipo elegido) ============ -->
+  <section id="v-inicio" class="vista">
     <div class="clima" id="clima" hidden role="status" aria-live="polite"></div>
     <form class="card permisos" id="f-primer" hidden autocomplete="off">
       <h2>Crear el administrador</h2>
@@ -364,6 +389,13 @@
 
   <!-- ============ AJUSTES ============ -->
   <section id="v-ajustes" class="vista">
+    <form class="card" id="f-nombre" hidden autocomplete="off">
+      <h2>Nombre del equipo</h2>
+      <div class="doble">
+        <div><label for="eq-nombre">Se ve en la pantalla de equipos</label><input id="eq-nombre" maxlength="24" autocapitalize="words"></div>
+        <div style="display:flex;align-items:flex-end"><button type="submit" class="btn prim" style="width:100%">Guardar nombre</button></div>
+      </div>
+    </form>
     <form class="card" id="f-ajustes">
       <h2>Venteo</h2>
       <div class="doble">
@@ -495,7 +527,8 @@
 </div>
 
 <nav>
-  <button data-vista="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</button>
+  <button data-vista="equipos" class="nav-pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>Equipos</button>
+  <button data-vista="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</button>
   <button data-vista="cultivos" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21v-9"/><path d="M12 12C12 7 8.5 4 4 4c0 5 3.5 8 8 8z"/><path d="M12 14c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z"/><path d="M5 21h14"/></svg>Cultivos</button>
   <button data-vista="clima"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M2.5 8H1M3.6 3.6l1 1M12.4 3.6l-1 1"/><path d="M9 20h9a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.4 1.6A3.3 3.3 0 0 0 9 20z"/></svg>Clima</button>
   <button data-vista="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
@@ -536,13 +569,14 @@
 
   // ---------- Navegación ----------
   $$('nav button').forEach(b => b.addEventListener('click', () => {
-    if (bloqueadoIngreso && b.dataset.vista !== 'conexion') { mostrarVista('ingreso'); avisar('Primero ingresá con tu usuario'); return; }
+    if (bloqueadoIngreso && b.dataset.vista !== 'conexion' && b.dataset.vista !== 'equipos') { mostrarVista('ingreso'); avisar('Primero ingresá con tu usuario'); return; }
     $$('nav button').forEach(x => x.classList.toggle('on', x === b));
     $$('.vista').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.vista));
     if (b.dataset.vista === 'alarmas') { noLeidas = 0; pintarBadge(); }
     if (b.dataset.vista === 'ajustes') { cargarAjustes(); cargarClimaCfg(); pintarUsuarios(); }
     if (b.dataset.vista === 'alarmas' && solapa === 'cambios') pedirRegistro();
     if (b.dataset.vista === 'inicio') setTimeout(dibujar, 0);   // al estar oculto no tenía ancho
+    if (b.dataset.vista === 'equipos') pintarGrilla();
     if (b.dataset.vista === 'clima') { pintarPermisos(); actualizarAfuera(false); }
     if (b.dataset.vista === 'cultivos') { pintarCultivos(); cargarCultivoCfg(); pedirRiegos(); }
     window.scrollTo(0, 0);
@@ -580,7 +614,7 @@
       pill('ok', DEMO ? 'Demostración' : 'En línea');
       $('#c-detalle').textContent = DEMO ? 'Conectado al vivero simulado (modo demostración).' : 'Conectado a ' + cfg.host + ' como ' + cfg.user + '.';
       cliente.subscribe(['vivero/+/online', 'vivero/+/nombre'], { qos: 1 });   // para descubrir los equipos
-      if (!NATIVO) cliente.subscribe('vivero/+/estado', { qos: 0 });           // PC: el resumen muestra todos los equipos
+      cliente.subscribe('vivero/+/estado', { qos: 0 });                        // la pantalla de equipos muestra todos
       cliente.subscribe('vivero/clima/alerta', { qos: 1 });                     // alertas del SMN (robot)
       suscribirNodo();
       ordenar('estado', '1');  // pide el estado al instante
@@ -666,12 +700,63 @@
       c.append(b);
     });
   }
+  // Pantalla principal: una tarjeta por equipo. Al tocarla se entra a ese equipo.
+  function idsEquipos(){
+    const ids = Object.keys(nodos).filter(id => nodos[id].estado || nodos[id].online !== undefined || nodos[id].nombre);
+    if (!ids.includes(cfg.nodo)) ids.push(cfg.nodo);
+    return ids.sort((a, b) => (parseInt(a.replace(/\D/g, '')) || 0) - (parseInt(b.replace(/\D/g, '')) || 0));
+  }
+  function pintarGrilla(){
+    const c = $('#grilla'); if (!c) return;
+    c.innerHTML = '';
+    idsEquipos().forEach(id => {
+      const n = nodos[id] || {}, s = n.estado || (id === cfg.nodo ? estado : null);
+      const b = document.createElement('button'); b.className = 'tarj'; b.type = 'button';
+      const tn = document.createElement('div'); tn.className = 'tn';
+      const dot = document.createElement('i'); dot.className = n.online === true ? 'ok' : n.online === false ? 'mal' : '';
+      tn.append(dot, document.createTextNode(nombreNodo(id)));
+      const tt = document.createElement('div'); tt.className = 'tt';
+      tt.append(document.createTextNode(s && s.temp != null ? s.temp.toFixed(1) : '--'));
+      const u1 = document.createElement('span'); u1.textContent = ' °C'; tt.append(u1);
+      const th = document.createElement('div'); th.className = 'th';
+      th.append(document.createTextNode(s && s.hum != null ? Math.round(s.hum) : '--'));
+      const u2 = document.createElement('span'); u2.textContent = ' % hum.'; th.append(u2);
+      const sm = document.createElement('small');
+      if (n.online === false) { sm.textContent = 'Desconectado'; sm.className = 'mal'; }
+      else if (!s) sm.textContent = 'Esperando datos…';
+      else if (s.sensor_ok === false) { sm.textContent = '⚠ Falla el sensor'; sm.className = 'mal'; }
+      else {
+        const p = [];
+        if (s.riego === 'on') p.push('💧 Regando');
+        if (s.venteo === 'abierto' || s.venteo === 'abriendo') p.push('Venteo abierto');
+        if (s.clima_cierre) p.push('⚠ Alerta SMN');
+        p.push(s.modo === 'auto' ? 'Automático' : 'Manual');
+        if (s.via === 'lora') p.push('LoRa');
+        sm.textContent = p.join(' · ');
+      }
+      b.append(tn, tt, th, sm);
+      b.addEventListener('click', () => entrarEquipo(id));
+      c.append(b);
+    });
+  }
+  function entrarEquipo(id){
+    cambiarNodo(id);
+    mostrarVista(bloqueadoIngreso ? 'ingreso' : 'inicio');
+    setTimeout(dibujar, 0);
+    window.scrollTo(0, 0);
+  }
+  let grillaT = 0;    // el estado llega seguido: se repinta como mucho 2 veces por segundo
+  const pedirGrilla = () => { if (!grillaT) grillaT = setTimeout(() => { grillaT = 0; pintarGrilla(); }, 500); };
+
   function pintarEquipos(){
     const c = $('#equipos');
     const ids = Object.keys(nodos);
     if (!ids.includes(cfg.nodo)) ids.push(cfg.nodo);
     ids.sort((a, b) => (parseInt(a.replace(/\D/g, '')) || 0) - (parseInt(b.replace(/\D/g, '')) || 0));
     c.innerHTML = '';
+    const v = document.createElement('button'); v.type = 'button'; v.className = 'volver'; v.textContent = '← Equipos';
+    v.addEventListener('click', () => { mostrarVista('equipos'); pintarGrilla(); window.scrollTo(0, 0); });
+    c.append(v);
     ids.forEach(id => {
       const b = document.createElement('button');
       b.className = 'equipo' + (id === cfg.nodo ? ' on' : '');
@@ -683,8 +768,8 @@
       b.addEventListener('click', () => cambiarNodo(id));
       c.append(b);
     });
-    c.hidden = ids.length < 2 || !NATIVO && window.innerWidth >= 900;   // en la PC elige desde el resumen
-    pintarResumen();
+    c.hidden = !NATIVO && window.innerWidth >= 900;   // en la PC se vuelve con "Equipos" del menu
+    pintarResumen(); pedirGrilla();
   }
 
   // ---------- Mensajes que llegan ----------
@@ -699,11 +784,12 @@
       const n = nodos[id] || (nodos[id] = {});
       if (m[2] === 'online') n.online = (txt === 'online'); else n.nombre = txt;
       pintarEquipos();
+      if (m[2] === 'nombre' && id === cfg.nodo) cargarNombre();
     }
     if (m[2] === 'estado' && id !== 'clima' && id !== 'oficina') {       // para el resumen de la PC
       const n = nodos[id] || (nodos[id] = {});
       try { n.estado = JSON.parse(txt); n.cuando = Date.now(); } catch (e) {}
-      pintarResumen();
+      pintarResumen(); pedirGrilla();
     }
     if (id !== cfg.nodo) return;           // es de otro equipo: solo lo anotamos arriba
     const sub = m[2];
@@ -1199,7 +1285,7 @@
       const ultimo = leer('dm.ultimoUsuario', ''); if (ultimo) sel.value = ultimo;
       $('#ing-tit').textContent = (NATIVO ? 'Ingresar a ' : 'Administración · ') + nombreNodo(cfg.nodo);
       $('#ing-pin').value = '';
-      if (!$('#v-conexion').classList.contains('on')) mostrarVista('ingreso');
+      if (!$('#v-conexion').classList.contains('on') && !$('#v-equipos').classList.contains('on')) mostrarVista('ingreso');
     }
     if (!pedir && bloqueadoIngreso && $('#v-ingreso').classList.contains('on')) mostrarVista('inicio');
     bloqueadoIngreso = pedir;
@@ -1224,6 +1310,7 @@
     bloqueadoIngreso = false; mostrarVista('inicio'); revisarAcceso();
     avisar('Hola, ' + u.n);
   });
+  $('#ing-volver').addEventListener('click', () => { mostrarVista('equipos'); pintarGrilla(); });
   $('#salir').addEventListener('click', () => { delete sesiones[cfg.nodo]; guardar('dm.sesiones', sesiones); revisarAcceso(); });
 
   $('#f-primer').addEventListener('submit', (ev) => {
@@ -1636,8 +1723,20 @@
     $('#ajustes-admin').hidden = !bloqueado;
     $('#clima_cierra').checked = cfgEquipo.clima_cierra === 1;
     $('#ajustes-nota').textContent = 'Los valores quedan guardados en el equipo, aunque se corte la luz.';
+    cargarNombre();
   }
   $('#ajustes-recargar').addEventListener('click', () => { ordenar('estado', '1'); cargarAjustes(); });
+  function cargarNombre(){
+    const f = $('#f-nombre');
+    f.hidden = !(cfgEquipo && cfgEquipo.renombrar && puedeAdmin());     // solo equipos que lo permiten, y administradores
+    if (!f.hidden && document.activeElement !== $('#eq-nombre')) $('#eq-nombre').value = nombreNodo(cfg.nodo);
+  }
+  $('#f-nombre').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const n = $('#eq-nombre').value.replace(/[|;"\\]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (n.length < 2) { avisar('El nombre es muy corto'); return; }
+    if (ordenar('nombre', n)) avisar('Nombre enviado al equipo');
+  });
 
   function validar(n){
     const err = [];

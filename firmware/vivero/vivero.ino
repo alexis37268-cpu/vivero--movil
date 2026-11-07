@@ -66,6 +66,7 @@ PubSubClient     mqtt(red);    // MQTT viaja por ese cable
 #endif
 
 Config       cfg;
+String       nombreEquipo = NODO_NOMBRE;   // se cambia desde la app (cmd/nombre)
 bool         modoAuto = true;
 EstadoVenteo venteo   = V_DESCONOCIDO;
 unsigned long motorDesde = 0;
@@ -146,6 +147,7 @@ void publicarConfig() {
   j += ",\"hist\":true";                     // este equipo guarda historial para el grafico
   j += ",\"clima_cierra\":" + String(cfg.climaCierra);
   j += ",\"usuarios\":true";                  // este equipo maneja usuarios y registro
+  j += ",\"renombrar\":true";                 // el nombre se cambia desde la app
   j += ",\"cultivos\":" + String(N_CULTIVOS);   // riego por cultivos (0 = riego unico)
   j += "}";
   publicar(t("config"), j, true);
@@ -165,6 +167,8 @@ void cargarConfig() {
   cfg.riegoPausaMin = prefs.getUShort("rPausa", DEF_RIEGO_PAUSA_MIN);
   cfg.climaCierra   = prefs.getUShort("climaC", 1);
   modoAuto          = prefs.getBool("auto", true);
+  nombreEquipo      = prefs.getString("nombre", NODO_NOMBRE);
+  if (!nombreEquipo.length()) nombreEquipo = NODO_NOMBRE;
   prefs.end();
 }
 
@@ -179,6 +183,7 @@ void guardarConfig() {
   prefs.putUShort("rPausa", cfg.riegoPausaMin);
   prefs.putUShort("climaC", cfg.climaCierra);
   prefs.putBool("auto",     modoAuto);
+  prefs.putString("nombre", nombreEquipo.c_str());
   prefs.end();
 }
 
@@ -804,6 +809,16 @@ void alRecibir(char* topic, byte* payload, unsigned int largo) {
   if (!tp.startsWith(base)) return;
   String cmd = tp.substring(base.length());   // ej: "venteo", "config/temp_abrir"
 
+  if (cmd == "nombre") {                    // nombre que se ve en la app (solo administrador)
+    String nuevo = limpiar(sep >= 0 ? crudo.substring(0, sep) : crudo, 24);
+    if (!esAdmin(quien)) { registrar(quien, "rechazado: cambio de nombre (no es administrador)"); alarma("nombre: solo un administrador lo cambia"); return; }
+    if (nuevo.length() < 2 || nuevo == nombreEquipo) return;
+    registrar(quien, "cambia el nombre: " + nombreEquipo + " -> " + nuevo);
+    nombreEquipo = nuevo;
+    guardarConfig();
+    publicar(t("nombre"), nombreEquipo, true);
+    return;
+  }
   if (cmd == "modo") {
     if (msg == "auto" || msg == "manual") {
       modoAuto = (msg == "auto");
@@ -896,7 +911,7 @@ void mqttTick() {
     estabaConectado = true;
     conectadoDesde  = millis();
     publicar(t("online"), "online", true);
-    publicar(t("nombre"), NODO_NOMBRE, true);
+    publicar(t("nombre"), nombreEquipo, true);
     mqtt.subscribe(t("cmd/#").c_str(), 1);
     mqtt.subscribe("vivero/clima/cierre", 1);   // alertas del SMN (lo publica el robot)
     publicarConfig();

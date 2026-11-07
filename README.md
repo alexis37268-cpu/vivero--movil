@@ -55,6 +55,12 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 
 Los valores fuera de rango se rechazan y se avisa por `alarma`.
 
+## Pantalla de equipos
+
+La app abre en **Equipos**: una tarjeta por cada equipo que se conecta al broker (vivero e hibernáculos), con nombre, temperatura, humedad y estado (en línea, regando, venteo abierto, alerta, falla de sensor). Al tocar una se entra a las pantallas de ese equipo; **← Equipos** (en la PC, *Equipos* en el menú) vuelve a la grilla. Cada equipo tiene sus propios usuarios: el PIN se pide al entrar, una vez por sesión.
+
+El **nombre** de cada equipo lo cambia un administrador en *Ajustes → Nombre del equipo* (orden `cmd/nombre`, queda guardado en la placa y se publica retenido en `nombre`). Por ahora solo el firmware del vivero lo permite; los hibernáculos usan el nombre fijo de su `config.h`.
+
 ## Modo demostración (para mostrar la app sin equipo)
 
 En **Conexión → Probar en modo demostración** la app se conecta a un vivero simulado que vive dentro de ella (`app/demo.js`): sin broker, sin placa y sin internet. Trae el Vivero con 5 cultivos, el Hibernáculo 1, historial de 48 h, riegos, registro de cambios, clima y una alerta de ejemplo. Usuarios de prueba: **Admin (PIN 1234)** y **Operario (PIN 0000)**.
