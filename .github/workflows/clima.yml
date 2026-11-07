@@ -1,0 +1,51 @@
+# Robot del clima: cada 15 min lee la REM y el SMN (con el mismo revisor de la app)
+# y deja datos/clima.json en la rama "datos". La pagina para PC lo lee de ahi.
+# No necesita claves: solo escribe en este mismo repo.
+name: Clima (robot)
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'     # cada 15 min (no en punto: a esa hora GitHub se atrasa mas)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['robot/clima-robot.js', 'app/runner-clima.js', '.github/workflows/clima.yml']
+concurrency:
+  group: clima-robot
+  cancel-in-progress: false
+permissions:
+  contents: write      # para subir la rama "datos"
+  actions: write       # para reactivarse solo (GitHub pausa los robots de repos sin cambios)
+jobs:
+  clima:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Traer la memoria anterior (cache del SMN)
+        run: |
+          mkdir -p datos
+          if git fetch --depth 1 origin datos 2>/dev/null; then git show origin/datos:kv.json > datos/kv.json || true; else echo "primera vez"; fi
+      - name: Leer REM y SMN
+        env:
+          VIVERO_LAT: ${{ vars.VIVERO_LAT }}
+          VIVERO_LON: ${{ vars.VIVERO_LON }}
+        run: node robot/clima-robot.js datos
+      - name: Subir a la rama datos (un solo commit, sin historial)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd datos
+          git init -q -b datos
+          git config user.name "robot-clima"
+          git config user.email "robot-clima@users.noreply.github.com"
+          git add clima.json kv.json
+          git commit -q -m "clima $(date -u +%FT%TZ) [skip ci]"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" datos
+      - name: Mantener el robot activo
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/clima.yml/enable" || echo "no se pudo reactivar (no es grave)"
