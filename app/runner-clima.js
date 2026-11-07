@@ -3,8 +3,9 @@
 //
 //  Android lo despierta cada 15 min o mas, aunque la app este cerrada.
 //  Lee:
-//   - REM (Gobierno de San Luis): estacion San Luis Rural (datos medidos)
-//     y pronostico de La Punta (la mas cercana con pronostico).
+//   - REM (Gobierno de San Luis): estacion Las Chacras (temperatura, humedad,
+//     lluvia), San Luis Rural para el viento y la temperatura del suelo (Las
+//     Chacras no los mide) y pronostico de La Punta (la mas cercana con pronostico).
 //   - SMN: alertas oficiales que cubran la ubicacion del vivero.
 //  Si hay algo nuevo (helada, rafaga fuerte, alerta SMN) manda una
 //  notificacion al celular.
@@ -23,9 +24,10 @@ const NIVEL = { moderate: 'amarillo', severe: 'naranja', extreme: 'rojo' };
 const CIERRAN = ['tormenta', 'viento', 'zonda', 'granizo', 'nevada', 'nieve'];
 
 const CFG_DEF = {
-  estacion: 46,          // REM San Luis Rural (zona de la Colonia Agricola)
+  estacion: 56,          // REM Las Chacras (zona de la Escuela de Policia, Juana Koslay)
+  estacionViento: 46,    // REM San Luis Rural: viento, rafagas y suelo (Las Chacras no los mide)
   pronostico: 20,        // REM La Punta (la mas cercana con pronostico)
-  lat: -33.3360, lon: -66.4353,   // para filtrar alertas del SMN (estacion 46)
+  lat: -33.2617, lon: -66.2430,   // para filtrar alertas del SMN (estacion 56)
   helada: 2,             // °C: minima pronosticada o medida que dispara el aviso
   rafaga: 60,            // km/h: rafaga medida que dispara el aviso
   avisos: true,          // notificaciones en el celular
@@ -194,7 +196,7 @@ function alertasRem(est, pron, cfg, ahora) {
     if (ahora - cuando >= 0 && ahora - cuando <= 90 * 60e3) {          // solo si fue hace poco
       out.push({ id: 'rafaga-' + cuando.toISOString().slice(0, 16), evento: 'Ráfaga fuerte medida', nivel: est.rafagaHoy >= cfg.rafaga + 20 ? 'naranja' : 'amarillo',
                  desde: Math.floor(cuando.getTime() / 1000), hasta: Math.floor(cuando.getTime() / 1000) + 3 * 3600, cierra: true, fuente: 'REM',
-                 texto: 'Ráfaga de ' + est.rafagaHoy + ' km/h a las ' + est.rafagaHora + ' en la estación ' + est.nombre + '.' });
+                 texto: 'Ráfaga de ' + est.rafagaHoy + ' km/h a las ' + est.rafagaHora + ' en la estación ' + (est.vientoDe || est.nombre) + '.' });
     }
   }
   return out;
@@ -205,12 +207,22 @@ async function revisar(ahora, extra) {
   const cfg = Object.assign({}, CFG_DEF, kvLeer('cfg', {}), extra || {});
   const ahoraS = Math.floor(ahora.getTime() / 1000);
   const errores = [];
-  let est = null, pron = null, smn = [];
+  let est = null, estV = null, pron = null, smn = [];
+  const otra = cfg.estacionViento && cfg.estacionViento !== cfg.estacion;
   await Promise.all([
     bajar(REM + 'Estacion.aspx?Estacion=' + cfg.estacion).then(h => { est = leerEstacion(h); }).catch(e => errores.push('REM estación: ' + e.message)),
+    otra ? bajar(REM + 'Estacion.aspx?Estacion=' + cfg.estacionViento).then(h => { estV = leerEstacion(h); }).catch(e => errores.push('REM viento: ' + e.message)) : null,
     bajar(REM + 'Pronostico.aspx?Estacion=' + cfg.pronostico).then(h => { pron = leerPronostico(h); }).catch(e => errores.push('REM pronóstico: ' + e.message)),
     alertasSmn(cfg, ahoraS).then(a => { smn = a; }).catch(e => errores.push('SMN: ' + e.message)),
   ]);
+  // Lo que la estacion principal no mide (viento, rafaga, suelo) se completa con la otra
+  if (est && estV) {
+    const v = {};
+    if (est.viento == null && estV.viento != null) Object.assign(v, { viento: estV.viento, vientoDir: estV.vientoDir });
+    if (est.rafagaHoy == null && estV.rafagaHoy != null) Object.assign(v, { rafagaHoy: estV.rafagaHoy, rafagaHora: estV.rafagaHora });
+    if (est.suelo.every(x => x == null) && estV.suelo.some(x => x != null)) v.suelo = estV.suelo;
+    if (Object.keys(v).length) Object.assign(est, v, { vientoDe: estV.nombre });
+  }
   const alertas = smn.concat(alertasRem(est, pron, cfg, ahora));
 
   // Notificar solo lo nuevo (cada alerta una sola vez). Con la app abierta no se
@@ -249,7 +261,7 @@ addEventListener('ultimoClima', (resolve) => { resolve(kvLeer('ultimo', null)); 
 // La app guarda los ajustes (umbrales, avisos si/no)
 addEventListener('guardarConfig', (resolve, reject, args) => {
   const c = Object.assign({}, kvLeer('cfg', {}));
-  ['helada', 'rafaga', 'avisos', 'estacion', 'pronostico', 'lat', 'lon'].forEach(k => { if (args && args[k] !== undefined) c[k] = args[k]; });
+  ['helada', 'rafaga', 'avisos', 'estacion', 'estacionViento', 'pronostico', 'lat', 'lon'].forEach(k => { if (args && args[k] !== undefined) c[k] = args[k]; });
   kvGuardar('cfg', c);
   resolve(Object.assign({}, CFG_DEF, c));
 });

@@ -8,6 +8,10 @@
 //   - Clima de afuera y una alerta de ejemplo.
 //  Usa los mismos mensajes que el equipo real, asi que la app no cambia.
 //
+//  Lo que se cambia (usuarios, PINs, ajustes, registro, riegos) queda
+//  guardado en este navegador/celular ("demo.sim"); "Reiniciar demo"
+//  lo vuelve a fabrica.
+//
 //  PARA SACARLO cuando se venda: borrar este archivo y la linea
 //  <script src="demo.js"> de app.html. Nada mas.
 // =============================================================
@@ -16,6 +20,7 @@
   const PASO_MS = 2000;                       // la simulacion avanza cada 2 s
   const ahoraS = () => Math.floor(Date.now() / 1000);
   // Usuarios de prueba (hash = SHA-256 de "nodo1:nombre:PIN", 16 caracteres)
+  const GUARDA = 'demo.sim';
   const USUARIOS = [{ n: 'Admin', admin: true, h: '299317cbb4b36f51' }, { n: 'Operario', admin: false, h: '1859409e4440c15d' }];
 
   function coincide(patron, topic) {           // comodines MQTT: + y #
@@ -52,7 +57,7 @@
     let reg = [], riegosL = [], regando = -1, lr = 0, rDesde = 0, rIni = 0, rQuien = '', venteoHasta = 0;
     const quienTxt = q => q || 'sin usuario';
     const esAdmin = q => usuarios.some(u => u.n.toLowerCase() === (q || '').toLowerCase() && u.admin);
-    const registrar = (q, que) => { const l = ahoraS() + '|' + quienTxt(q) + '|' + que; reg.push(l); reg = reg.slice(-300); emitir(B1 + 'registro/nuevo', l); };
+    const registrar = (q, que) => { const l = ahoraS() + '|' + quienTxt(q) + '|' + que; reg.push(l); reg = reg.slice(-300); emitir(B1 + 'registro/nuevo', l); guardarSim(); };
     const pubE = () => { st.riego = regando >= 0 ? 'on' : 'off'; emitir(B1 + 'estado', JSON.stringify(st), true); };
     const pubC = () => emitir(B1 + 'config', JSON.stringify(cfg), true);
     const pubU = () => emitir(B1 + 'usuarios', JSON.stringify(usuarios.map(u => ({ n: u.n, r: u.admin ? 'admin' : 'operario', h: u.h }))), true);
@@ -106,6 +111,25 @@
     const st2 = { via: 'lora', temp: 19.5, hum: 71, sensor_ok: true, venteo: 'cerrado', riego: 'off', modo: 'auto', rssi: -96, uptime_s: 7200 };
     const cfg2 = { temp_abrir: 26, temp_cerrar: 22, hum_riego_on: 45, hum_riego_off: 70, motor_max_s: 40, riego_max_min: 10, riego_pausa_min: 30, recorrido: true };
 
+    // ---------------- Lo guardado de antes (si hay) ----------------
+    function guardarSim() {
+      try {
+        localStorage.setItem(GUARDA, JSON.stringify({ v: 1, cfg, cfg2, cc, usuarios, modo: st.modo, reg: reg.slice(-300), riegos: riegosL.slice(-100),
+          ec: ec.map(e => ({ lh: e.lh, lm: e.lm, lt: e.lt })) }));
+      } catch (e) {}
+    }
+    let previo = null;
+    try { previo = JSON.parse(localStorage.getItem(GUARDA) || 'null'); } catch (e) {}
+    if (previo && previo.v === 1) {
+      Object.assign(cfg, previo.cfg); Object.assign(cfg2, previo.cfg2);
+      (previo.cc || []).forEach((c, i) => cc[i] && Object.assign(cc[i], c));
+      (previo.ec || []).forEach((e, i) => ec[i] && Object.assign(ec[i], e));
+      if (Array.isArray(previo.usuarios) && previo.usuarios.length) usuarios = previo.usuarios;
+      if (Array.isArray(previo.reg)) reg = previo.reg;
+      if (Array.isArray(previo.riegos)) riegosL = previo.riegos;
+      if (previo.modo === 'auto' || previo.modo === 'manual') st.modo = previo.modo;
+    }
+
     function publicarTodo() {
       emitir(B1 + 'online', 'online', true); emitir(B1 + 'nombre', 'Vivero', true);
       emitir(B2 + 'online', 'online', true); emitir(B2 + 'nombre', 'Hibernaculo 1', true);
@@ -122,7 +146,7 @@
         if (cmd === 'modo') st2.modo = msg;
         else if (cmd === 'venteo' && st2.modo === 'manual') st2.venteo = msg === 'abrir' ? 'abierto' : msg === 'cerrar' ? 'cerrado' : st2.venteo;
         else if (cmd === 'riego' && (st2.modo === 'manual' || msg === 'off')) st2.riego = msg;
-        else if (cmd.startsWith('config/')) { cfg2[cmd.slice(7)] = parseFloat(msg); emitir(B2 + 'config', JSON.stringify(cfg2), true); }
+        else if (cmd.startsWith('config/')) { cfg2[cmd.slice(7)] = parseFloat(msg); emitir(B2 + 'config', JSON.stringify(cfg2), true); guardarSim(); }
         else if (cmd === 'historial') emitir(B2 + 'historial', JSON.stringify({ p: 0, de: 1, n: 0, dt: 600, edad: 0, desde: 0, v: [] }));
         emitir(B2 + 'estado', JSON.stringify(st2), true);
         return;
@@ -236,7 +260,7 @@
     const ahora = ahoraS(), hhmm = new Date(Date.now() - 300e3).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
     return {
       revisado: ahora, fuente: 'demo', errores: [],
-      estacion: { nombre: 'San Luis Rural', hora: hhmm, temp: 21.4, hum: 48, vientoDir: 'NE', viento: 14, lluvia1h: 0, lluvia24h: 0, lluvia30d: 82.4,
+      estacion: { nombre: 'Las Chacras', vientoDe: 'San Luis Rural', hora: hhmm, temp: 21.4, hum: 48, vientoDir: 'NE', viento: 14, lluvia1h: 0, lluvia24h: 0, lluvia30d: 82.4,
                   suelo: [19.2, 18.8, 18.1], maxHoy: 26, minHoy: 9, rafagaHoy: 38, rafagaHora: '15:10' },
       pronostico: { estacion: 'La Punta', hoyMin: 9, hoyMax: 26, dias: [
         { dia: d(1), min: 7, max: 26, cielo: 'Despejado', lluvia: false },
@@ -247,5 +271,10 @@
     };
   }
 
-  window.DemoVivero = { crear, climaEjemplo, usuarios: 'Admin (PIN 1234) · Operario (PIN 0000)' };
+  // Vuelve todo a fabrica: borra lo guardado de la demo (no toca nada del equipo real)
+  function reiniciar() {
+    try { Object.keys(localStorage).filter(k => k === GUARDA || k.startsWith('demo.')).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  }
+
+  window.DemoVivero = { crear, climaEjemplo, reiniciar, usuarios: 'Admin (PIN 1234) · Operario (PIN 0000)' };
 })();

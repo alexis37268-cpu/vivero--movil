@@ -2,7 +2,7 @@
 //  Robot del clima (GitHub Actions, cada 15 min)
 //
 //  Corre el MISMO revisor que usa la app del celular (app/runner-clima.js):
-//  lee la REM (estacion San Luis Rural + pronostico de La Punta) y las
+//  lee la REM (Las Chacras, viento de San Luis Rural, pronostico de La Punta) y las
 //  alertas del SMN, y deja el resultado en datos/clima.json.
 //  El workflow sube ese archivo a la rama "datos" del repo; la pagina
 //  para PC lo lee de ahi (GitHub lo permite, la REM no).
@@ -33,7 +33,8 @@ const disparar = (ev, args) => new Promise((res, rej) => handlers[ev](res, rej, 
   const lat = parseFloat(process.env.VIVERO_LAT), lon = parseFloat(process.env.VIVERO_LON);
   const cfg = { avisos: false };
   if (!isNaN(lat) && !isNaN(lon)) Object.assign(cfg, { lat, lon });
-  await disparar('guardarConfig', cfg);
+  const final = await disparar('guardarConfig', cfg);
+  console.log('Config:', `estacion ${final.estacion}, viento ${final.estacionViento}, pronostico ${final.pronostico}, punto ${final.lat},${final.lon}`);
   const r = await disparar('revisarClima', {});
   r.fuente = 'robot';
   fs.writeFileSync(path.join(DIR, 'clima.json'), JSON.stringify(r));

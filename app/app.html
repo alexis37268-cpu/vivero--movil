@@ -180,11 +180,12 @@
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
   .demo-cartel{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--sol);color:#2b2100;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:700}
+  .demo-bot{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
   .demo-cartel button{background:#2b2100;color:#fff;border:0;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
 </style>
 
 <div class="app">
-  <div class="demo-cartel" id="demo-cartel" hidden><span>DEMOSTRACIÓN · vivero simulado, sin equipo real</span><button type="button" id="demo-salir">Salir</button></div>
+  <div class="demo-cartel" id="demo-cartel" hidden><span>DEMOSTRACIÓN · vivero simulado, sin equipo real</span><span class="demo-bot"><button type="button" id="demo-reiniciar" title="Volver la demostración a fábrica">Reiniciar</button><button type="button" id="demo-salir">Salir</button></span></div>
   <header>
     <div class="marca"><img src="logo.png" alt="Sol Puntano"></div>
     <div class="titulo">
@@ -426,7 +427,7 @@
         <div><label for="cl-rafaga">Aviso de ráfaga desde (km/h)</label><input id="cl-rafaga" type="number" step="5" inputmode="numeric"></div>
       </div>
       <label class="interruptor" for="cl-avisos" style="margin-top:12px">Avisos en el celular con la app cerrada <input id="cl-avisos" type="checkbox"></label>
-      <p class="nota">Datos: REM (Gobierno de San Luis), estación San Luis Rural, y pronóstico de La Punta. Alertas: SMN. Android revisa cada 15 min o más.</p>
+      <p class="nota">Datos: REM (Gobierno de San Luis), estación Las Chacras (viento y suelo de San Luis Rural, porque Las Chacras no los mide) y pronóstico de La Punta. Alertas: SMN. Android revisa cada 15 min o más.</p>
       <p class="nota" id="cl-permisos"></p>
       <div class="botones dos">
         <button type="button" class="btn" id="cl-revisar">Revisar permisos</button>
@@ -1043,10 +1044,10 @@
     const e = r.estacion;
     $('#af-temp').textContent   = e ? coma(e.temp) + ' °C' : '--';
     $('#af-hum').textContent    = e ? Math.round(e.hum) + ' %' : '--';
-    $('#af-viento').textContent = e ? Math.round(e.viento) + ' km/h ' + e.vientoDir : '--';
+    $('#af-viento').textContent = e && e.viento != null ? Math.round(e.viento) + ' km/h ' + e.vientoDir : '--';
     $('#af-rafaga').textContent = e && e.rafagaHoy != null ? Math.round(e.rafagaHoy) + ' km/h (' + e.rafagaHora + ')' : '—';
     $('#af-lluvia').textContent = e ? coma(e.lluvia24h) + ' / ' + coma(e.lluvia30d) + ' mm' : '—';
-    $('#af-suelo').textContent  = e ? e.suelo.map(v => coma(v)).join(' / ') + ' °C' : '—';
+    $('#af-suelo').textContent  = e && e.suelo && e.suelo.some(v => v != null) ? e.suelo.map(v => coma(v)).join(' / ') + ' °C' : '—';
     const p = r.pronostico, c = $('#af-pron');
     c.innerHTML = '';
     $('#af-pron-tit').textContent = 'Pronóstico' + (p && p.estacion ? ' (' + p.estacion + ')' : '');
@@ -1062,7 +1063,7 @@
     });
     const h = r.revisado ? new Date(r.revisado * 1000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--';
     const err = r.errores && r.errores.length ? '⚠ ' + r.errores.join(' · ') + '. ' : '';
-    $('#af-nota').textContent = err + (e ? 'Estación ' + e.nombre + ' (dato de las ' + e.hora + ') · ' : '') +
+    $('#af-nota').textContent = err + (e ? 'Estación ' + e.nombre + ' (dato de las ' + e.hora + ')' + (e.vientoDe ? ', viento y suelo de ' + e.vientoDe : '') + ' · ' : '') +
       'revisado ' + h + ' · Fuente: REM, Gobierno de San Luis';
     $('#af-nota').style.color = err ? 'var(--rojo)' : '';
   }
@@ -1445,7 +1446,7 @@
     if (afuera && (afuera.estacion || afuera.pronostico)) {
       const e = afuera.estacion, p = afuera.pronostico;
       const f = [['Dato', 'Valor']];
-      if (e) f.push(['Estación', 'REM ' + e.nombre + ' (' + e.hora + ')'], ['Temperatura °C', e.temp], ['Humedad %', e.hum], ['Viento km/h', e.viento],
+      if (e) f.push(['Estación', 'REM ' + e.nombre + ' (' + e.hora + ')' + (e.vientoDe ? '; viento y suelo: ' + e.vientoDe : '')], ['Temperatura °C', e.temp], ['Humedad %', e.hum], ['Viento km/h', e.viento],
                     ['Ráfaga máx. hoy km/h', e.rafagaHoy], ['Lluvia 24 h mm', e.lluvia24h], ['Lluvia 30 días mm', e.lluvia30d],
                     ['Suelo 5 cm °C', e.suelo[0]], ['Suelo 10 cm °C', e.suelo[1]], ['Suelo 30 cm °C', e.suelo[2]]);
       if (p) p.dias.forEach(d => f.push(['Pronóstico ' + d.dia + ' (' + p.estacion + ')', d.min + ' / ' + d.max + ' °C, ' + d.cielo + (d.lluvia ? ', prob. lluvia' : '')]));
@@ -1727,6 +1728,10 @@
     const cambiarDemo = (on) => { desconectar(); try { on ? localStorage.setItem('dm.demo', '1') : localStorage.removeItem('dm.demo'); } catch (e) {} location.reload(); };
     $('#c-demo-btn').addEventListener('click', () => cambiarDemo(true));
     $('#demo-salir').addEventListener('click', () => cambiarDemo(false));
+    $('#demo-reiniciar').addEventListener('click', () => {
+      if (!confirm('¿Volver la demostración a fábrica? Se borran los usuarios, PINs y ajustes que cambiaste en la demo (el equipo real no se toca).')) return;
+      desconectar(); window.DemoVivero.reiniciar(); location.reload();
+    });
   }
   if (DEMO || cfg.pass) conectar();
   else { pill('aviso', 'Falta configurar'); $('nav button[data-vista=conexion]').click(); }

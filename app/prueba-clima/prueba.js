@@ -1,4 +1,4 @@
-// Prueba del revisor de clima con paginas REALES guardadas (REM 6/11/2026, SMN 6/10/2026).
+// Prueba del revisor de clima con paginas REALES guardadas (REM 46 y 20 del 6/11/2026, REM 56 del 7/11/2026, SMN 6/10/2026).
 // Simula el entorno del Background Runner (fetch, CapacitorKV, CapacitorNotifications).
 // Uso: node prueba-clima/prueba.js   (desde app/)
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -9,6 +9,7 @@ const ok = (c, msg) => { console.log((c ? 'OK  ' : 'MAL ') + msg); if (!c) falla
 function entorno(ajustes) {
   const kv = {}, notif = [], handlers = {};
   const archivo = (url) => {
+    if (url.includes('Estacion.aspx?Estacion=56')) return 'estacion56.html';
     if (url.includes('Estacion.aspx')) return 'estacion46.html';
     if (url.includes('Pronostico.aspx')) return 'pronostico20.html';
     if (url.includes('CAP/AR.php')) return 'rss_excerpt.xml';
@@ -37,7 +38,8 @@ function fijarFecha(e, iso) {
   let e = entorno();
   fijarFecha(e, '2026-11-06T21:05:00-03:00');
   let r = await e.disparar('revisarClima', {});
-  ok(r.estacion && r.estacion.temp === 11.8 && r.estacion.hum === 100, 'estación: 11,8 °C y 100 %');
+  ok(r.estacion && r.estacion.nombre === 'Las Chacras' && r.estacion.temp === 17.9 && r.estacion.hum === 36.2, 'estación Las Chacras: 17,9 °C y 36,2 %');
+  ok(r.estacion.vientoDe === 'San Luis Rural', 'viento y suelo completados con San Luis Rural');
   ok(r.estacion.viento === 20.5 && r.estacion.vientoDir === 'SE', 'viento SE 20,5 km/h');
   ok(r.estacion.rafagaHoy === 47 && r.estacion.rafagaHora === '15:41', 'ráfaga del día 47 km/h a las 15:41');
   ok(JSON.stringify(r.estacion.suelo) === '[19.5,19.9,19.4]', 'suelo 5/10/30 cm');
@@ -80,7 +82,13 @@ function fijarFecha(e, iso) {
 
   // 6) El último resultado queda guardado para la app
   const u = await e.disparar('ultimoClima', {});
-  ok(u && u.estacion && u.estacion.temp === 11.8, 'último resultado disponible para la app');
+  ok(u && u.estacion && u.estacion.temp === 17.9, 'último resultado disponible para la app');
+
+  // 7) Sin estacion de viento: Las Chacras sola deja el viento vacio (no inventa)
+  e = entorno(); fijarFecha(e, '2026-11-06T21:05:00-03:00');
+  await e.disparar('guardarConfig', { estacionViento: 0 });
+  r = await e.disparar('revisarClima', {});
+  ok(r.estacion.viento === null && !r.estacion.vientoDe && r.errores.length === 0, 'Las Chacras sola: sin viento y sin errores');
 
   console.log(fallas ? fallas + ' FALLAS' : 'TODO OK');
   process.exit(fallas ? 1 : 0);

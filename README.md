@@ -58,7 +58,7 @@ Los valores fuera de rango se rechazan y se avisa por `alarma`.
 ## Modo demostración (para mostrar la app sin equipo)
 
 En **Conexión → Probar en modo demostración** la app se conecta a un vivero simulado que vive dentro de ella (`app/demo.js`): sin broker, sin placa y sin internet. Trae el Vivero con 5 cultivos, el Hibernáculo 1, historial de 48 h, riegos, registro de cambios, clima y una alerta de ejemplo. Usuarios de prueba: **Admin (PIN 1234)** y **Operario (PIN 0000)**.
-Todo lo que se toca en la demo se guarda aparte (`demo.dm.*`), así que no se mezcla con el equipo real. El cartel amarillo de arriba tiene **Salir**.
+Todo lo que se toca en la demo (usuarios, PINs, ajustes, registro) queda guardado aparte (`demo.sim` y `demo.dm.*`) en ese celular o PC, así que no se mezcla con el equipo real y sigue ahí al volver a abrirla. El cartel amarillo de arriba tiene **Reiniciar** (vuelve todo a fábrica) y **Salir**.
 
 **Para sacarlo** (cuando se venda): borrar `app/demo.js` y la línea `<script src="demo.js">` de `app/app.html`. Sin ese archivo el botón no aparece.
 
@@ -108,7 +108,7 @@ La app se conecta por **WebSocket con TLS (puerto 8084)**.
 ## Clima de afuera y avisos en el celular (REM + SMN)
 
 La app trae un revisor que **Android ejecuta cada 15 min o más, aunque la app esté cerrada** (`app/runner-clima.js`, plugin Capacitor Background Runner):
-- **REM** (Red de Estaciones Meteorológicas, Gobierno de San Luis): datos medidos de la estación **San Luis Rural** (n.º 46) y pronóstico de 3 días de **La Punta** (n.º 20). Se muestran en Inicio, tarjeta *Afuera*.
+- **REM** (Red de Estaciones Meteorológicas, Gobierno de San Luis): datos medidos de la estación **Las Chacras** (n.º 56, zona de la Escuela de Policía / Juana Koslay). Como Las Chacras no mide viento ni suelo, esos datos (y el aviso de ráfagas) salen de **San Luis Rural** (n.º 46). Pronóstico de 3 días de **La Punta** (n.º 20): las otras dos no tienen. Las alertas del SMN se filtran para el punto de la estación 56 (-33,262 / -66,243). Se muestran en Inicio, tarjeta *Afuera*.
 - **SMN**: alertas oficiales que cubren la zona.
 - **Notificación** en el celular con: alerta del SMN, helada pronosticada o medida (umbral en Ajustes, 2 °C por defecto) y ráfaga medida (60 km/h por defecto). Cada aviso llega una sola vez.
 
