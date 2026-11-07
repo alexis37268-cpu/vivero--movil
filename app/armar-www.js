@@ -20,6 +20,7 @@ fs.copyFileSync('node_modules/mqtt/dist/mqtt.min.js', 'www/mqtt.min.js');
 fs.copyFileSync('logo-completo.png', 'www/logo.png');      // logo de Sol Puntano para el encabezado
 fs.mkdirSync('www/runners', { recursive: true });
 fs.copyFileSync('runner-clima.js', 'www/runners/clima.js');   // revisor de clima en segundo plano
+if (fs.existsSync('demo.js')) fs.copyFileSync('demo.js', 'www/demo.js');   // modo demostracion (se saca borrando demo.js)
 // Version para PC (pagina web instalable): manifiesto, iconos y service worker
 for (const f of fs.readdirSync('pc')) fs.copyFileSync('pc/' + f, 'www/' + f);
 console.log('www/ listo');

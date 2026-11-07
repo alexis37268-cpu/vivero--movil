@@ -55,6 +55,13 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 
 Los valores fuera de rango se rechazan y se avisa por `alarma`.
 
+## Modo demostración (para mostrar la app sin equipo)
+
+En **Conexión → Probar en modo demostración** la app se conecta a un vivero simulado que vive dentro de ella (`app/demo.js`): sin broker, sin placa y sin internet. Trae el Vivero con 5 cultivos, el Hibernáculo 1, historial de 48 h, riegos, registro de cambios, clima y una alerta de ejemplo. Usuarios de prueba: **Admin (PIN 1234)** y **Operario (PIN 0000)**.
+Todo lo que se toca en la demo se guarda aparte (`demo.dm.*`), así que no se mezcla con el equipo real. El cartel amarillo de arriba tiene **Salir**.
+
+**Para sacarlo** (cuando se venda): borrar `app/demo.js` y la línea `<script src="demo.js">` de `app/app.html`. Sin ese archivo el botón no aparece.
+
 ## Probar en el simulador (Wokwi)
 1. Entrar a **wokwi.com** → *New Project* → **ESP32**.
 2. Reemplazar `diagram.json` por el de `wokwi/` y crear `libraries.txt` con el de `wokwi/`.

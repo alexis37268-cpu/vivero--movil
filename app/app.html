@@ -179,9 +179,12 @@
   #cu-resumen .nota{margin:0}
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
+  .demo-cartel{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--sol);color:#2b2100;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:700}
+  .demo-cartel button{background:#2b2100;color:#fff;border:0;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
 </style>
 
 <div class="app">
+  <div class="demo-cartel" id="demo-cartel" hidden><span>DEMOSTRACIÓN · vivero simulado, sin equipo real</span><button type="button" id="demo-salir">Salir</button></div>
   <header>
     <div class="marca"><img src="logo.png" alt="Sol Puntano"></div>
     <div class="titulo">
@@ -482,6 +485,11 @@
       </div>
     </form>
     <p class="nota" id="c-detalle"></p>
+    <div class="card" id="c-demo" hidden>
+      <h2>Modo demostración</h2>
+      <p class="nota">Para mostrar la app sin placa ni internet: un vivero simulado con 5 cultivos, usuarios de prueba y clima de ejemplo. No toca el equipo real ni sus datos.</p>
+      <div class="botones"><button type="button" class="btn prim" id="c-demo-btn">Probar en modo demostración</button></div>
+    </div>
   </section>
 </div>
 
@@ -496,7 +504,8 @@
 <div class="toast" id="toast"></div>
 
 <script src="mqtt.min.js"></script>
-<script src="runners/clima.js"></script>   <!-- el mismo revisor de clima que corre en segundo plano -->
+<script src="runners/clima.js"></script>
+<script src="demo.js"></script>   <!-- MODO DEMOSTRACION: borrar esta linea y demo.js para sacarlo -->   <!-- el mismo revisor de clima que corre en segundo plano -->
 <script>
 (function(){
   'use strict';
@@ -504,8 +513,11 @@
   // ---------- Utilidades ----------
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => Array.from(document.querySelectorAll(s));
-  const leer = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
-  const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  // Modo demostración: guarda todo aparte ("demo.dm.*"), así no se mezcla con el equipo real
+  const DEMO = !!window.DemoVivero && (() => { try { return localStorage.getItem('dm.demo') === '1'; } catch (e) { return false; } })();
+  const PRE = DEMO ? 'demo.' : '';
+  const leer = (k, d) => { try { const v = localStorage.getItem(PRE + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const guardar = (k, v) => { try { localStorage.setItem(PRE + k, JSON.stringify(v)); } catch (e) {} };
   let toastT;
   function avisar(txt){ const t = $('#toast'); t.textContent = txt; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
   const hora = (d) => d.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
@@ -542,6 +554,8 @@
 
   function conectar(){
     desconectar();
+    if (DEMO) { cliente = window.DemoVivero.crear(); pill('aviso', 'Conectando…'); }
+    else {
     if (!cfg.host || !cfg.user || !cfg.pass) {
       pill('aviso', 'Falta configurar');
       $('#c-detalle').textContent = 'Completá dirección, usuario y clave en Conexión.';
@@ -560,9 +574,10 @@
       connectTimeout: 15000,
       clean: true
     });
+    }
     cliente.on('connect', () => {
-      pill('ok', 'En línea');
-      $('#c-detalle').textContent = 'Conectado a ' + cfg.host + ' como ' + cfg.user + '.';
+      pill('ok', DEMO ? 'Demostración' : 'En línea');
+      $('#c-detalle').textContent = DEMO ? 'Conectado al vivero simulado (modo demostración).' : 'Conectado a ' + cfg.host + ' como ' + cfg.user + '.';
       cliente.subscribe(['vivero/+/online', 'vivero/+/nombre'], { qos: 1 });   // para descubrir los equipos
       if (!NATIVO) cliente.subscribe('vivero/+/estado', { qos: 0 });           // PC: el resumen muestra todos los equipos
       cliente.subscribe('vivero/clima/alerta', { qos: 1 });                     // alertas del SMN (robot)
@@ -999,7 +1014,7 @@
     $('#af-nota').textContent = 'Consultando la REM y el SMN…';
     try {
       // Celular: lee la REM directo. PC (navegador): el navegador no deja, se usa el archivo del robot.
-      let r = NATIVO && window.ClimaRevisor ? await window.ClimaRevisor.revisar(new Date(), climaCfg) : null;
+      let r = DEMO ? window.DemoVivero.climaEjemplo() : NATIVO && window.ClimaRevisor ? await window.ClimaRevisor.revisar(new Date(), climaCfg) : null;
       if (!r || (!r.estacion && !r.pronostico)) {
         const resp = await fetch(CLIMA_ROBOT + '?t=' + Math.floor(Date.now() / 60e3));
         if (!resp.ok) throw new Error('archivo del robot: ' + resp.status);
@@ -1204,7 +1219,7 @@
     if (!NATIVO && u.r !== 'admin') { $('#ing-nota').textContent = 'En la PC solo entran administradores. Los operarios usan la app del celular.'; $('#ing-nota').style.color = 'var(--rojo)'; $('#ing-pin').value = ''; return; }
     sesiones[cfg.nodo] = { nombre: u.n, ultimo: Date.now() }; guardar('dm.sesiones', sesiones);
     guardar('dm.ultimoUsuario', u.n);
-    $('#ing-nota').textContent = 'Pedile el PIN al administrador.'; $('#ing-nota').style.color = '';
+    $('#ing-nota').textContent = DEMO ? 'Usuarios de prueba: ' + window.DemoVivero.usuarios : 'Pedile el PIN al administrador.'; $('#ing-nota').style.color = '';
     bloqueadoIngreso = false; mostrarVista('inicio'); revisarAcceso();
     avisar('Hola, ' + u.n);
   });
@@ -1701,7 +1716,19 @@
   cargarConexion(); pintarAlarmas(); pintar(); pintarEquipos(); dibujar(); iniciarClima();
   // PC: registrar el service worker para que el navegador ofrezca "Instalar app"
   if (!NATIVO && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
-  if (cfg.pass) conectar();
+  // ---------- Modo demostración (se saca borrando demo.js) ----------
+  if (window.DemoVivero) {
+    $('#c-demo').hidden = DEMO;
+    $('#demo-cartel').hidden = !DEMO;
+    if (DEMO) {
+      $('#f-conexion').hidden = true;
+      $('#ing-nota').textContent = 'Usuarios de prueba: ' + window.DemoVivero.usuarios;
+    }
+    const cambiarDemo = (on) => { desconectar(); try { on ? localStorage.setItem('dm.demo', '1') : localStorage.removeItem('dm.demo'); } catch (e) {} location.reload(); };
+    $('#c-demo-btn').addEventListener('click', () => cambiarDemo(true));
+    $('#demo-salir').addEventListener('click', () => cambiarDemo(false));
+  }
+  if (DEMO || cfg.pass) conectar();
   else { pill('aviso', 'Falta configurar'); $('nav button[data-vista=conexion]').click(); }
 })();
 </script>
