@@ -1,0 +1,16 @@
+# Prueba temporal: bajar la pagina de una estacion de la REM para ver su formato
+name: Prueba REM
+on: push
+jobs:
+  rem:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          mkdir rem
+          curl -sS -m 30 -A "SolPuntano-vivero/1.0" -o rem/estacion46.html -w "estacion %{http_code} %{size_download}\n" "https://clima.sanluis.gob.ar/Estacion.aspx?Estacion=46"
+          curl -sS -m 30 -A "SolPuntano-vivero/1.0" -o rem/pronostico46.html -w "pronostico %{http_code} %{size_download}\n" "https://clima.sanluis.gob.ar/Pronostico.aspx?Estacion=46"
+          curl -sS -m 30 -A "SolPuntano-vivero/1.0" -o rem/aplicaciones.html -w "aplicaciones %{http_code} %{size_download}\n" "https://clima.sanluis.gob.ar/Aplicaciones.aspx"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rem
+          path: rem/
