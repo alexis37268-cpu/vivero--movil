@@ -58,7 +58,7 @@
   .alarma{padding:10px 0;border-top:1px solid var(--line)}
   .alarma:first-child{border-top:0}
   .alarma time{display:block;color:var(--muted);font-size:12px}
-  nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+  nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
   nav button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;padding:6px 2px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:2px}
   nav button svg{width:22px;height:22px}
   nav button.on{color:var(--verde);background:var(--verde-claro)}
@@ -157,31 +157,6 @@
       <p class="nota" id="g-nota"></p>
     </div>
 
-    <div class="card permisos" id="c-permisos" hidden>
-      <h2>Avisos del clima</h2>
-      <p>Para avisarte de heladas, ráfagas y alertas del SMN <b>aunque la app esté cerrada</b>, permití las notificaciones y que Android no la frene.</p>
-      <div class="botones dos">
-        <button class="btn prim" id="perm-activar">Activar avisos</button>
-        <button class="btn" id="perm-auto" hidden>Inicio automático</button>
-      </div>
-      <p class="nota" id="perm-nota"></p>
-    </div>
-
-    <div class="card" id="c-afuera" hidden>
-      <div class="graf-cab"><h2>Afuera</h2><button class="btn chico" id="af-act">Actualizar</button></div>
-      <div class="af-top">
-        <div><small>Temperatura</small><b id="af-temp">--</b></div>
-        <div><small>Humedad</small><b id="af-hum">--</b></div>
-        <div><small>Viento</small><b id="af-viento">--</b></div>
-      </div>
-      <div class="fila"><span>Ráfaga máx. hoy</span><span class="estado" id="af-rafaga">—</span></div>
-      <div class="fila"><span>Lluvia 24 h / 30 días</span><span class="estado" id="af-lluvia">—</span></div>
-      <div class="fila"><span>Suelo 5 / 10 / 30 cm</span><span class="estado" id="af-suelo">—</span></div>
-      <h3 id="af-pron-tit">Pronóstico</h3>
-      <div class="af-pron" id="af-pron"></div>
-      <p class="nota" id="af-nota">Cargando…</p>
-    </div>
-
     <div class="card" style="margin-top:12px">
       <h2>Estado</h2>
       <div class="fila"><span>Equipo</span><span class="estado" id="online">—</span></div>
@@ -211,6 +186,35 @@
       </div>
       <p class="nota">«Parar» y «Cortar riego» funcionan siempre, también en automático.</p>
     </div>
+  </section>
+
+  <!-- ============ CLIMA ============ -->
+  <section id="v-clima" class="vista">
+    <div class="card permisos" id="c-permisos" hidden>
+      <h2>Avisos del clima</h2>
+      <p>Para avisarte de heladas, ráfagas y alertas del SMN <b>aunque la app esté cerrada</b>, permití las notificaciones y que Android no la frene.</p>
+      <div class="botones dos">
+        <button class="btn prim" id="perm-activar">Activar avisos</button>
+        <button class="btn" id="perm-auto" hidden>Inicio automático</button>
+      </div>
+      <p class="nota" id="perm-nota"></p>
+    </div>
+
+    <div class="card" id="c-afuera">
+      <div class="graf-cab"><h2>Afuera</h2><button class="btn chico" id="af-act">Actualizar</button></div>
+      <div class="af-top">
+        <div><small>Temperatura</small><b id="af-temp">--</b></div>
+        <div><small>Humedad</small><b id="af-hum">--</b></div>
+        <div><small>Viento</small><b id="af-viento">--</b></div>
+      </div>
+      <div class="fila"><span>Ráfaga máx. hoy</span><span class="estado" id="af-rafaga">—</span></div>
+      <div class="fila"><span>Lluvia 24 h / 30 días</span><span class="estado" id="af-lluvia">—</span></div>
+      <div class="fila"><span>Suelo 5 / 10 / 30 cm</span><span class="estado" id="af-suelo">—</span></div>
+      <h3 id="af-pron-tit">Pronóstico</h3>
+      <div class="af-pron" id="af-pron"></div>
+      <p class="nota" id="af-nota">Cargando…</p>
+    </div>
+
   </section>
 
   <!-- ============ AJUSTES ============ -->
@@ -297,6 +301,7 @@
 
 <nav>
   <button data-vista="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</button>
+  <button data-vista="clima"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M2.5 8H1M3.6 3.6l1 1M12.4 3.6l-1 1"/><path d="M9 20h9a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.4 1.6A3.3 3.3 0 0 0 9 20z"/></svg>Clima</button>
   <button data-vista="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
   <button data-vista="alarmas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span>Alarmas<span id="badge" class="badge" hidden></span></span></button>
   <button data-vista="conexion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/><path d="M2 9a14 14 0 0 1 20 0"/></svg>Conexión</button>
@@ -304,6 +309,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="mqtt.min.js"></script>
+<script src="runners/clima.js"></script>   <!-- el mismo revisor de clima que corre en segundo plano -->
 <script>
 (function(){
   'use strict';
@@ -335,6 +341,7 @@
     if (b.dataset.vista === 'alarmas') { noLeidas = 0; pintarBadge(); }
     if (b.dataset.vista === 'ajustes') { cargarAjustes(); cargarClimaCfg(); }
     if (b.dataset.vista === 'inicio') setTimeout(dibujar, 0);   // al estar oculto no tenía ancho
+    if (b.dataset.vista === 'clima') { pintarPermisos(); actualizarAfuera(false); }
     window.scrollTo(0, 0);
   }));
 
@@ -728,22 +735,30 @@
   const coma = (v, d = 1) => v == null ? '--' : Number(v).toFixed(d).replace('.', ',');
   const correr = (event, details) => BR.dispatchEvent({ label: RUNNER, event, details: details || {} });
 
+  // Con la app abierta se lee directo (internet nativo de Android, sin depender del revisor de
+  // segundo plano). Si son datos de hace menos de 10 min, se muestran los guardados.
+  let consultando = false;
   async function actualizarAfuera(forzar){
-    if (!BR) return;
-    const nota = $('#af-nota');
+    pintarAfuera();
+    if (consultando) return;
+    if (!forzar && afuera && Date.now() / 1000 - afuera.revisado < 10 * 60) return;
+    if (!window.ClimaRevisor) { $('#af-nota').textContent = 'Falta el revisor de clima (runners/clima.js).'; return; }
+    consultando = true;
+    $('#af-nota').textContent = 'Consultando la REM y el SMN…';
     try {
-      if (forzar) nota.textContent = 'Consultando la REM y el SMN…';
-      let r = await correr(forzar ? 'revisarClima' : 'ultimoClima');
-      if (r && r.value !== undefined && r.revisado === undefined) r = r.value;   // por si viene envuelto
-      if (r && r.revisado) { afuera = r; guardar('dm.afuera', r); alertasCelu(r.alertas || []); }
-      pintarAfuera();
-      if (!forzar && (!r || !r.revisado || Date.now() / 1000 - r.revisado > 15 * 60)) actualizarAfuera(true);
+      const r = await window.ClimaRevisor.revisar(new Date(), climaCfg);
+      // Si una parte falló, se sigue mostrando el último dato bueno de esa parte
+      if (!r.estacion && afuera && afuera.estacion) r.estacion = afuera.estacion;
+      if (!r.pronostico && afuera && afuera.pronostico) r.pronostico = afuera.pronostico;
+      afuera = r; guardar('dm.afuera', r);
+      alertasCelu(r.alertas || []);
     } catch (e) {
-      nota.textContent = 'No se pudo consultar el clima (' + (e && e.message || e) + '). Probá con Actualizar.';
+      afuera = Object.assign({}, afuera || {}, { errores: ['No se pudo consultar: ' + (e && e.message || e)] });
     }
+    consultando = false;
+    pintarAfuera();
   }
   function pintarAfuera(){
-    $('#c-afuera').hidden = !BR && !afuera;
     const r = afuera; if (!r) return;
     const e = r.estacion;
     $('#af-temp').textContent   = e ? coma(e.temp) + ' °C' : '--';
@@ -765,9 +780,11 @@
       const s = document.createElement('small'); s.textContent = d.cielo + (d.lluvia ? ' · prob. lluvia' : '');
       div.append(b, mm, s); c.append(div);
     });
-    const h = new Date(r.revisado * 1000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
-    $('#af-nota').textContent = (e ? 'Estación ' + e.nombre + ' (dato de las ' + e.hora + ')' : '') +
-      ' · revisado ' + h + ' · Fuente: REM, Gobierno de San Luis' + (r.errores && r.errores.length ? ' · ⚠ ' + r.errores.join('; ') : '');
+    const h = r.revisado ? new Date(r.revisado * 1000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--';
+    const err = r.errores && r.errores.length ? '⚠ ' + r.errores.join(' · ') + '. ' : '';
+    $('#af-nota').textContent = err + (e ? 'Estación ' + e.nombre + ' (dato de las ' + e.hora + ') · ' : '') +
+      'revisado ' + h + ' · Fuente: REM, Gobierno de San Luis';
+    $('#af-nota').style.color = err ? 'var(--rojo)' : '';
   }
   $('#af-act').addEventListener('click', () => actualizarAfuera(true));
 
@@ -803,7 +820,7 @@
   $('#perm-auto').addEventListener('click', async () => {
     try { await BAT.autoinicio(); avisar('Buscá «Vivero Sol Puntano» y activá el inicio automático'); } catch (e) {}
   });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { pintarPermisos(); actualizarAfuera(false); } });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (BR) pintarPermisos(); actualizarAfuera(false); } });
 
   // Ajustes de clima
   function cargarClimaCfg(){
@@ -817,19 +834,19 @@
     if (!(h >= -10 && h <= 15) || !(r >= 20 && r <= 150)) { avisar('Helada entre -10 y 15 °C; ráfaga entre 20 y 150 km/h'); return; }
     climaCfg = { helada: h, rafaga: r, avisos: $('#cl-avisos').checked };
     guardar('dm.climaCfg', climaCfg);
-    try { await correr('guardarConfig', climaCfg); avisar('Ajustes del clima guardados'); actualizarAfuera(true); } catch (e) { avisar('No se pudo guardar'); }
+    try { if (BR) await correr('guardarConfig', climaCfg); avisar('Ajustes del clima guardados'); } catch (e) { avisar('No se pudo guardar en el revisor de segundo plano'); }
+    actualizarAfuera(true);
     if (climaCfg.avisos) pedirPermisos(); else pintarPermisos();
   });
 
   async function iniciarClima(){
-    pintarAfuera();
+    actualizarAfuera(false);                         // también alimenta el cartel de alertas de Inicio
+    setInterval(() => actualizarAfuera(true), 15 * 60e3);
     if (!BR) return;
     try { await correr('guardarConfig', climaCfg); } catch (e) {}
     const st = await estadoPermisos();
     if (climaCfg.avisos && st && !st.notif && !leer('dm.permPedido', false)) { guardar('dm.permPedido', true); await pedirPermisos(); }
     pintarPermisos();
-    actualizarAfuera(false);
-    setInterval(() => actualizarAfuera(true), 15 * 60e3);
   }
 
   // ---------- Ajustes ----------
@@ -925,6 +942,6 @@
   // ---------- Arranque ----------
   cargarConexion(); pintarAlarmas(); pintar(); pintarEquipos(); dibujar(); iniciarClima();
   if (cfg.pass) conectar();
-  else { pill('aviso', 'Falta configurar'); $$('nav button')[3].click(); }
+  else { pill('aviso', 'Falta configurar'); $('nav button[data-vista=conexion]').click(); }
 })();
 </script>

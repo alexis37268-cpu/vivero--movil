@@ -7,9 +7,11 @@
 //     y pronostico de La Punta (la mas cercana con pronostico).
 //   - SMN: alertas oficiales que cubran la ubicacion del vivero.
 //  Si hay algo nuevo (helada, rafaga fuerte, alerta SMN) manda una
-//  notificacion al celular. La app tambien lo llama para mostrar los datos.
+//  notificacion al celular.
 //
-//  OJO: aca no hay navegador (ni DOM ni localStorage). Solo fetch,
+//  El MISMO archivo lo carga la app con la pantalla abierta para mostrar
+//  los datos (ahi no hay CapacitorKV ni notificaciones: se reemplazan).
+//  En segundo plano no hay navegador (ni DOM ni localStorage): solo fetch,
 //  CapacitorKV (memoria chica) y CapacitorNotifications.
 // =============================================================
 
@@ -29,11 +31,21 @@ const CFG_DEF = {
   avisos: true,          // notificaciones en el celular
 };
 
+// ¿Corre dentro de la app (pantalla abierta) o en segundo plano?
+const EN_APP = typeof window !== 'undefined' && typeof document !== 'undefined';
+const KV = EN_APP
+  ? { get: (k) => localStorage.getItem('clima.' + k), set: (k, v) => localStorage.setItem('clima.' + k, v) }
+  : CapacitorKV;
+
 // ---------- utilidades ----------
 function kvLeer(k, def) {
-  try { const r = CapacitorKV.get(k); const v = r && r.value; return v ? JSON.parse(v) : def; } catch (e) { return def; }
+  try {
+    const r = KV.get(k);
+    const v = typeof r === 'string' ? r : (r && r.value);   // segun la version devuelve texto u {value}
+    return v ? JSON.parse(v) : def;
+  } catch (e) { return def; }
 }
-function kvGuardar(k, v) { try { CapacitorKV.set(k, JSON.stringify(v)); } catch (e) {} }
+function kvGuardar(k, v) { try { KV.set(k, JSON.stringify(v)); } catch (e) {} }
 
 async function bajar(url) {
   const r = await fetch(url, { headers: { 'User-Agent': AGENTE } });
@@ -189,8 +201,8 @@ function alertasRem(est, pron, cfg, ahora) {
 }
 
 // ---------- revision completa ----------
-async function revisar(ahora) {
-  const cfg = Object.assign({}, CFG_DEF, kvLeer('cfg', {}));
+async function revisar(ahora, extra) {
+  const cfg = Object.assign({}, CFG_DEF, kvLeer('cfg', {}), extra || {});
   const ahoraS = Math.floor(ahora.getTime() / 1000);
   const errores = [];
   let est = null, pron = null, smn = [];
@@ -201,7 +213,9 @@ async function revisar(ahora) {
   ]);
   const alertas = smn.concat(alertasRem(est, pron, cfg, ahora));
 
-  // Notificar solo lo nuevo (cada alerta una sola vez)
+  // Notificar solo lo nuevo (cada alerta una sola vez). Con la app abierta no se
+  // notifica: lo ve en pantalla (y el aviso queda para el revisor de segundo plano).
+  if (EN_APP) { const res = { revisado: ahoraS, estacion: est, pronostico: pron, alertas, errores }; kvGuardar('ultimo', res); return res; }
   const avisadas = kvLeer('avisadas', {});
   const nuevas = alertas.filter(a => !avisadas[a.id]);
   if (cfg.avisos && nuevas.length) {
@@ -222,6 +236,9 @@ async function revisar(ahora) {
 }
 
 // ---------- eventos ----------
+if (EN_APP) {
+  window.ClimaRevisor = { revisar, leerEstacion, leerPronostico };
+} else {
 // Android lo llama solo cada 15 min (configurado en capacitor.config.json)
 addEventListener('revisarClima', async (resolve, reject, args) => {
   try { resolve(await revisar(new Date())); }
@@ -236,3 +253,4 @@ addEventListener('guardarConfig', (resolve, reject, args) => {
   kvGuardar('cfg', c);
   resolve(Object.assign({}, CFG_DEF, c));
 });
+}
