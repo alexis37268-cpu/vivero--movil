@@ -588,6 +588,16 @@ void publicarRegistro() {
   if (enParte || total == 0) { j += "]}"; publicar(t("registro"), j, false); }
 }
 
+// Reseteo desde el tablero (RIEGO + VENTEO 10 s): para cuando nadie recuerda
+// el PIN del administrador. Solo lo puede hacer alguien parado frente al equipo.
+void usuariosBorrar() {
+  nUsuarios = 0;
+  usuariosGuardar();
+  publicarUsuarios();
+  registrar("panel", "borro todos los usuarios (reseteo desde el tablero)");
+  alarma("usuarios: borrados desde el tablero. Crear el administrador de nuevo en la app");
+}
+
 // cmd/usuario/alta  "nombre;rol;hash;quien"   (rol = admin | operario)
 // cmd/usuario/baja  "nombre;quien"
 // cmd/usuario/pin   "nombre;hash;quien"       (el admin, o el mismo usuario)
@@ -999,6 +1009,15 @@ void botonesTick() {
   // Se actua al APRETAR (flanco a GND), una sola vez por toque
   if (bRiego.actualizar()  && bRiego.activo())  pulsoRiego();
   if (bVenteo.actualizar() && bVenteo.activo()) pulsoVenteo();
+
+  // RIEGO + VENTEO juntos 10 s: borra los usuarios (recuperar el administrador).
+  // Conviene hacerlo en AUTOMATICO, asi los dos toques no mueven nada.
+  static unsigned long comboDesde = 0;
+  static bool comboHecho = false;
+  if (bRiego.activo() && bVenteo.activo()) {
+    if (!comboDesde) { comboDesde = millis(); Serial.println("[USUARIOS] RIEGO + VENTEO: mantener 10 s para borrar usuarios"); }
+    else if (!comboHecho && millis() - comboDesde >= RESET_USUARIOS_MS) { comboHecho = true; usuariosBorrar(); }
+  } else { comboDesde = 0; comboHecho = false; }
 
 #if !MODO_WOKWI && (PIN_BOTON_PORTAL == PIN_BOTON_MODO)
   // 8266: el boton FLASH es MODO (toque corto) y PORTAL (mantener 5 s).

@@ -132,6 +132,7 @@ Usar **MQTTX** conectado al broker y suscripto a `vivero/#`.
     - **VENTEO** (en manual): cerrado → abre; abierto → cierra; **moviéndose → para**.
     - En automático, RIEGO y VENTEO no hacen nada y llega una alarma "pulsador ignorado".
     - Tocar rápido varias veces: cada toque tiene que contar **una sola vez** (antirrebote por software de 50 ms, sin `delay`).
+    - **RIEGO + VENTEO apretados juntos 10 segundos** (mejor en automático): borra todos los usuarios. Sirve si nadie recuerda el PIN del administrador; después la app pide crear el administrador de nuevo. Queda anotado en el registro.
 
 Si todo esto anda, recién ahí etapa 2.
 

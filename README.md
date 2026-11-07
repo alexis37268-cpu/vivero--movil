@@ -135,6 +135,7 @@ GitHub pausa los workflows programados de un repo público después de 60 días 
   Del PIN solo se guarda `h` = primeros 16 caracteres hex de SHA-256 de `nodo1:nombre-en-minúsculas:PIN`.
 - **Operario**: modo, venteo y riego. **Administrador**: además ajustes y usuarios (lo controla la app y también el ESP).
 - **Registro**: el ESP anota `fecha|quién|qué` (incluye `panel` = pulsadores, `automatico` = lógica sola, `equipo` = encendido) en la flash, ~300 líneas (2 archivos de 150). Cada acción nueva sale al instante por `registro/nuevo`.
+- **Olvido del PIN del administrador**: en el tablero, RIEGO + VENTEO apretados juntos 10 s borran la lista de usuarios (ajustes y registro no se tocan) y la app vuelve a pedir crear el administrador. Solo se puede hacer estando frente al equipo.
 - Seguridad: sirve para uso interno. Quien tenga la clave del broker puede mandar órdenes a mano con cualquier nombre.
 
 ## Versión para PC (página web, solo administradores)
