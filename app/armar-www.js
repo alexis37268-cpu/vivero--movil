@@ -14,4 +14,6 @@ fs.mkdirSync('www', { recursive: true });
 fs.writeFileSync('www/index.html', html);
 fs.copyFileSync('node_modules/mqtt/dist/mqtt.min.js', 'www/mqtt.min.js');
 fs.copyFileSync('logo-completo.png', 'www/logo.png');      // logo de Sol Puntano para el encabezado
+fs.mkdirSync('www/runners', { recursive: true });
+fs.copyFileSync('runner-clima.js', 'www/runners/clima.js');   // revisor de clima en segundo plano
 console.log('www/ listo');

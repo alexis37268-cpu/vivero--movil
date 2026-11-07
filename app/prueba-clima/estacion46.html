@@ -1,0 +1,518 @@
+
+<!DOCTYPE html>
+<html lang="es-AR">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" /><meta name="description" content="REM, Red de Estaciones Meteorológicas de la Provincia de San Luis, Argentina" /><meta name="keywords" content="REM,Estacion,Meteorológica,San Luis, Argentina,Clima, Temperatura,Humedad,Viento" />
+    <link rel="shortcut icon" href="/static/images/favicon.ico" />
+    
+<link rel="stylesheet" type="text/css" href="/static/css/Rem.css?Ver=19" />
+<link rel="stylesheet" type="text/css" href="/static/css/Menu.css?Ver=19" />
+<link rel="stylesheet" type="text/css" href="/static/jquery/jquery-ui.css?Ver=19" />
+<link rel="stylesheet" type="text/css" href="/static/css/mRem.css?Ver=19" media="screen and (max-width:1200px)" />
+<link rel="stylesheet" type="text/css" href="/static/css/mMenu.css?Ver=19" media="screen and (max-width:650px)" />
+<script src="/static/js/SunInfo.js?Ver=19"></script>
+<script src="/static/js/MiscLib.js?Ver=19"></script>
+<script src="/static/jquery/jquery-1.12.4.js?Ver=19"></script>
+<script src="/static/jquery/jquery-ui.js?Ver=19"></script>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        function autoHeight() {
+            var alto;
+            var desp = 55;
+            $('.ContenedorCentro').css('min-height', 0);
+            alto = $(document).height() - $("#ImgLogo").height() - $("#imgSL3Footer").height();
+            if (alto > 0) {
+                $('.ContenedorCentro').css('min-height', alto);
+            }
+        }
+
+        $(document).ready(function () {
+            autoHeight();
+        });
+
+        $(window).resize(function () {
+            autoHeight();
+        });
+
+        $(function () {
+            $("#MenuEstaciones").scroll();
+            $("#MenuEstacionesSLA").scroll();
+            $("#MenuEstacionesINTA").scroll();
+            $("#MenuPronostico").scroll();
+        });
+    </script>
+    
+    <title id="head_oTitle">REM: Estaci&#243;n San Luis Rural</title>
+<!--script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&key=AIzaSyC3I484JpWNQ8qroiSnwaWVk4ApmBk43o8"--><!--/-script-->
+<script>
+    var EstacionLat=-33.34000000000000;
+var EstacionLon=-66.44000000000000;
+var EstacionNombre="San Luis Rural";
+var EstacionConTemp=true;
+var vTemp24 =[[new Date(1793926800000),24.2],[new Date(1793927400000),24.0],[new Date(1793928000000),24.0],[new Date(1793928600000),23.7],[new Date(1793929200000),23.6],[new Date(1793929800000),23.5],[new Date(1793930400000),23.3],[new Date(1793931000000),23.3],[new Date(1793931600000),23.3],[new Date(1793932200000),23.4],[new Date(1793932800000),23.6],[new Date(1793933400000),23.5],[new Date(1793934000000),23.6],[new Date(1793934600000),23.4],[new Date(1793935200000),23.4],[new Date(1793935800000),23.4],[new Date(1793936400000),23.4],[new Date(1793937000000),23.3],[new Date(1793937600000),23.4],[new Date(1793938200000),23.2],[new Date(1793938800000),22.5],[new Date(1793939400000),22.1],[new Date(1793940000000),21.9],[new Date(1793940600000),21.0],[new Date(1793941200000),19.9],[new Date(1793941800000),19.4],[new Date(1793942400000),19.0],[new Date(1793943000000),19.0],[new Date(1793943600000),19.1],[new Date(1793944200000),18.8],[new Date(1793944800000),18.5],[new Date(1793945400000),18.4],[new Date(1793946000000),18.2],[new Date(1793946600000),17.9],[new Date(1793947200000),17.8],[new Date(1793947800000),17.7],[new Date(1793948400000),17.4],[new Date(1793949000000),17.4],[new Date(1793949600000),17.4],[new Date(1793950200000),17.6],[new Date(1793950800000),17.5],[new Date(1793951400000),17.3],[new Date(1793952000000),17.2],[new Date(1793952600000),17.2],[new Date(1793953200000),17.1],[new Date(1793953800000),17.0],[new Date(1793954400000),17.0],[new Date(1793955000000),17.0],[new Date(1793955600000),16.8],[new Date(1793956200000),16.7],[new Date(1793956800000),16.8],[new Date(1793957400000),16.7],[new Date(1793958000000),16.5],[new Date(1793958600000),16.4],[new Date(1793959200000),16.5],[new Date(1793959800000),16.5],[new Date(1793960400000),16.4],[new Date(1793961000000),16.3],[new Date(1793961600000),16.2],[new Date(1793962200000),16.3],[new Date(1793962800000),16.3],[new Date(1793963400000),16.5],[new Date(1793964000000),16.7],[new Date(1793964600000),16.6],[new Date(1793965200000),17.6],[new Date(1793965800000),17.9],[new Date(1793966400000),18.3],[new Date(1793967000000),18.1],[new Date(1793967600000),17.6],[new Date(1793968200000),17.1],[new Date(1793968800000),17.0],[new Date(1793969400000),17.8],[new Date(1793970000000),19.0],[new Date(1793970600000),18.9],[new Date(1793971200000),17.8],[new Date(1793971800000),17.5],[new Date(1793972400000),17.9],[new Date(1793973000000),18.2],[new Date(1793973600000),18.0],[new Date(1793974200000),17.9],[new Date(1793974800000),18.5],[new Date(1793975400000),19.3],[new Date(1793976000000),19.6],[new Date(1793976600000),20.0],[new Date(1793977200000),19.2],[new Date(1793977800000),18.5],[new Date(1793978400000),17.7],[new Date(1793979000000),17.9],[new Date(1793979600000),17.9],[new Date(1793980200000),18.3],[new Date(1793980800000),18.0],[new Date(1793981400000),17.7],[new Date(1793982000000),17.5],[new Date(1793982600000),17.6],[new Date(1793983200000),17.9],[new Date(1793983800000),18.0],[new Date(1793984400000),18.2],[new Date(1793985000000),17.4],[new Date(1793985600000),17.1],[new Date(1793986200000),16.6],[new Date(1793986800000),16.2],[new Date(1793987400000),16.1],[new Date(1793988000000),16.0],[new Date(1793988600000),16.1],[new Date(1793989200000),16.7],[new Date(1793989800000),17.3],[new Date(1793990400000),17.8],[new Date(1793991000000),18.3],[new Date(1793991600000),18.3],[new Date(1793992200000),17.9],[new Date(1793992800000),17.5],[new Date(1793993400000),17.4],[new Date(1793994000000),17.4],[new Date(1793994600000),17.3],[new Date(1793995200000),17.2],[new Date(1793995800000),17.3],[new Date(1793996400000),17.4],[new Date(1793997000000),17.3],[new Date(1793997600000),17.2],[new Date(1793998200000),17.1],[new Date(1793998800000),17.0],[new Date(1793999400000),16.8],[new Date(1794000000000),16.7],[new Date(1794000600000),16.7],[new Date(1794001200000),15.6],[new Date(1794001800000),15.1],[new Date(1794002400000),14.8],[new Date(1794003000000),14.3],[new Date(1794003600000),14.1],[new Date(1794004200000),13.9],[new Date(1794004800000),13.8],[new Date(1794005400000),13.6],[new Date(1794006000000),13.1],[new Date(1794006600000),12.8],[new Date(1794007200000),12.5],[new Date(1794007800000),12.1],[new Date(1794008400000),11.9],[new Date(1794009000000),11.9],[new Date(1794009600000),11.8]];
+var EstacionConPres=false;
+var EstacionConBn=false;
+
+    var FechaAstro = new Date();
+
+    function initializeMapa() { 
+        var mapOptions = {    
+            zoom: 12,    //15
+            center: new google.maps.LatLng(EstacionLat,EstacionLon),    
+            mapTypeId: google.maps.MapTypeId.ROADMAP /*SATELLITE*/    };
+    var map = new google.maps.Map(document.getElementById('map-canvas'),mapOptions);
+	
+    var marker = new google.maps.Marker({
+        position: map.getCenter(),
+        map: map  });   
+
+    }
+
+    function ActualizarCondicionesAstro() {
+        $("#lblFechaAstro").text(DateToString(FechaAstro));
+        var mySunInfo = new SunInfo(FechaAstro, EstacionLat, EstacionLon);
+        document.getElementById("lblSalidaDelSol").innerText=mySunInfo.salSol();        
+        document.getElementById("lblPuestaDelSol").innerText = mySunInfo.pueSol();
+        document.getElementById("lblAmanece").innerText = mySunInfo.amanece();
+        document.getElementById("lblAnochece").innerText = mySunInfo.anochece();
+        document.getElementById("lblDuracionDelDia").innerText = mySunInfo.durDia();
+        document.getElementById("lblHorasDeLuz").innerText=mySunInfo.durLuz();        
+    }
+
+    function CambiaFecha(pDate, oDate) {
+        var vFecha;
+        vFecha = pDate.split("/");
+        FechaAstro = new Date(parseInt(vFecha[2], 10), parseInt(vFecha[1]) - 1, parseInt(vFecha[0], 10));
+        ActualizarCondicionesAstro();
+    }
+
+    function EstacionOnLoad() {
+        ActualizarCondicionesAstro();
+    }
+
+    function InicializarGraficoTemperatura() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('datetime', 'Horas');
+        data.addColumn('number', 'Temperatura');
+        data.addRows(vTemp24);
+
+        // Set chart options
+        var options = {
+            'title': 'Temp. 24hs - ' + EstacionNombre,
+            'width': 374,
+            'height': 250,
+            chartArea: {width:'80%'},
+            vAxes: {
+                0: { title: 'Temperatura (ºC)', format: '#' }
+            },
+            hAxes: {
+                0: { title: 'Hora',format:'H:m' }
+            },
+            legend: { position: 'none' }
+
+        };
+        // Instantiate and draw our chart, passing in some options.
+        var chart = new google.visualization.LineChart(document.getElementById('chartTemp_div'));
+
+        google.visualization.events.addListener(chart, 'ready', function () {
+            document.getElementById('chartTempPrint_div').innerHTML = '<img id="imgTemp24" src="' + chart.getImageURI() + '">';
+        });
+
+        chart.draw(data, options);
+
+    }
+
+        function InicializarGraficoPresion() {
+            var data = new google.visualization.DataTable();
+            data.addColumn('datetime', 'Horas');
+            data.addColumn('number', 'Presión');
+            data.addRows(vPres24);
+
+            // Set chart options
+            var options = {
+                'title': 'Presión 24hs - ' + EstacionNombre,
+                'width': 374,
+                'height': 250,
+                chartArea: {width:'80%'},
+                vAxes: {
+                    0: { title: 'Presión (hPa)', format: '#' }
+                },
+                hAxes: {
+                    0: { title: 'Hora',format:'H:m' }
+                },
+                legend: { position: 'none' }
+
+            };
+            // Instantiate and draw our chart, passing in some options.
+            var chart = new google.visualization.LineChart(document.getElementById('chartPres_div'));
+
+            google.visualization.events.addListener(chart, 'ready', function () {
+                document.getElementById('chartPresPrint_div').innerHTML = '<img id="imgPres24" src="' + chart.getImageURI() + '">';
+            });
+
+            chart.draw(data, options);
+
+        }
+
+            function InicializarGraficoBrilloNocturno() {
+                var data = new google.visualization.DataTable();
+                data.addColumn('datetime', 'Horas');
+                data.addColumn('number', 'Brillo Nocturno');
+                data.addRows(vBn24);
+
+                // Set chart options
+                var options = {
+                    'title': 'Brillo Noc. 24hs - ' + EstacionNombre,
+                    'width': 374,
+                    'height': 250,
+                    chartArea: {width:'80%'},
+                    vAxes: {
+                        0: { title: 'mag/arcseg2', format: '#' }
+                    },
+                    hAxes: {
+                        0: { title: 'Hora',format:'H:m' }
+                    },
+                    legend: { position: 'none' }
+
+                };
+
+        // Instantiate and draw our chart, passing in some options.
+        var chart = new google.visualization.LineChart(document.getElementById('chartBn_div'));
+
+        google.visualization.events.addListener(chart, 'ready', function () {
+            document.getElementById('chartBnPrint_div').innerHTML = '<img id="imgBn24" src="' + chart.getImageURI() + '">';
+        });
+
+        chart.draw(data, options);
+
+    }
+    
+    window.addEventListener("load", ActualizarCondicionesAstro, false);
+    //Se quita la visualización del mapa utilizando la API
+    //google.maps.event.addDomListener(window, 'load', initializeMapa);
+    google.charts.load('current', { 'packages': ['corechart'], 'language': 'es' });
+    if(EstacionConTemp)
+        google.charts.setOnLoadCallback(InicializarGraficoTemperatura);
+    if (EstacionConPres)
+        google.charts.setOnLoadCallback(InicializarGraficoPresion);
+    if (EstacionConBn)
+        google.charts.setOnLoadCallback(InicializarGraficoBrilloNocturno);
+    
+    $(function () {
+        $("#CalendarioAstro").datepicker({ dateFormat: "dd/mm/yy", monthNames: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"], dayNamesMin: ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"], onSelect: CambiaFecha });
+        $('.ToolTipLink').tooltip({
+            content: function () {
+                var element = $(this);
+                return "<p class='ToolTip'>" + element.attr('title') + "</p>"
+            }
+        });
+    });
+  
+</script>
+<title>
+
+</title></head>
+<body>
+    <form method="post" action="./Estacion.aspx?Estacion=46" id="form1" class="Form">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="Qrmbw8GuthqEFSyiQ22iPW/hUBZbf/6zLPZcP71AIPxTmISjW0jPkBoc+KPgCSuVdEUUhviwO/zfFsMhCpNfQxhOsJLJ/G6XEnrsWnMp7nZhb16S8BGCv6m4pKel418I6Dn40ukIhBFH7hZQWImnvi80S0jpXJxBysKaOxoZjRW4ySIBaB7St3IZ9j79GyvaiD4Er6DShsoNRE8xUXv7DpzLOsKq4fjULqSrjCel2PywQBLh7P3K8BacDyrSPd/qmKkUIBm7L2cu8tHDx5GcZsAtzF8u5/KENLHg5GKswd1KVxOzU6l5BdWJIzz5EI1b7EyoYI/+pPM8smGaBxFv/HtMa7hL3yADC15qYZ6sgp3+l5FfKEuVtW1qGWun38LWR8Xq6dQuwXtp6MqKXS8F1Ltl18F8THdWuu2h0XWLZP8tqAndfqG+P2ON5PtsJDSXokP59sKi94D01hZxbm0kcbAil4lRxgqE3TyQN3nEwcucPmnMjyzRl4M5aIVqeuYXEU4hR1JhIuQOfvj2qtrnm9m0XtejG0mE4AH86goVLa/CIUlzpC8MyfL/shYlucVpUcr55wkWVzIMKrkLHraR4mdxuhgE3Gro76eD9+TWQ7Hj/sGqSXkccxlsi7JsUtxfSyWngyiiR+Pb8ZgfBDkQAIASon94LwuykPpOiFO72D/l8yA4VxCG12zPkWs1BRrD9Oyn7Xw2yJd1HRaw1gOrUXo2LI8d/0H5PHhLre6Qcj6BkgmA9Tz2RSrAJAFyRcZNImd9ovwWU80YGFQLgH/l9bjI0zGLIPFkjJxfANhfLy+WadXTe16SQXczG3L7vz89aKerBEy6Na7llnYRwTH6WYCJfeG9G+QjYXfOJy9t2Ad2OHIWJyQQidQg/mFCCPK2bP0lsLvJTZW+d9XTIUINcXfYWnCM39H6WLtTPZdTe1v8X6NwiOoYLvkQbfs7VLnh907/xiqAK0euCHYELgVRYOjj66LYhqrCBkNIzt+PvKphPV62bi1qpGOqUK4gX13WdDAA8FeEECQfsDRsIprRl8qqNqBO3LF7VwklWI16UsN7ctf8bM0dQa1V8baQbOw0MNKF40OMRTD5YF7o8gv+ZGzbJHAfKxKaxnTewHRmXN4wJ+5tAXaa9b+k5L3HHT5zDZs5SNLfLbg+Vg54Y5rBxgOB9dQ16iUS+mVQqKoKlL4t998/1o7dQ6fAFYKTDlaQn9rykhaUFa37rB/aPS2D0YMUlZrClLgEZr+Vo4tQg4n/NA9Fct+q++webYnSx+GfKcK8mF4cjYjINBbQWT3Peqj+sRG/hNwbX1JYY5BRMnR7GZS+WSY63K8UA7PN8Nmp2UiRqwWgnILYtmw3oe8PCG6Er4T9Ob6k98Qsq9hzlUwpPC4pfhpT0EyH7uwa2DMS3HHAJLrqMU/82ts1uhmxG7CFmxhp1QW5i7sDnb9/AClisQGRak67H3Z8+rB6wVxxWSrRWXWIR8FMFTAe/LRSCMA1TOXQ/k6Tajd+ASeXpuGd7ZgveSC/EZjKJp0sHnK+" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="9ABCC5DD" />
+     <div class="ContenedorTop"><div class="Top">
+         <div class="TopImage">
+            <a href="Index.aspx"><img src="static/images/REM.png" id="ImgLogo" width="213" height="85" border="0" alt="Red de Estaciones Meteorológicas" title="Red de Estaciones Meteorológicas" /></a>
+         </div>
+         <!--
+         <div class="TopBanner">
+                <a href="static/docs/BASES-Y-CONDICIONES-CONCURSO-APLICACIONES-REM.pdf" id="A1" target="_blank"><img src="static/images/BannerConcursoAplicacionesWeb.jpg" id="Img4" width="602" height="40" border="0" alt="Concurso Aplicaciones REM" title="Concurso Aplicaciones REM" /></a>
+          </div>-->
+         <div class="TopMenu">
+             <ul>
+                 <li><a href="Index.aspx">Inicio</a></li>
+                 <li class="dropdown"> <a href="javascript:void(0)" class="dropbtn">REM</a>
+                  <div class="dropdown-content" id="MenuEstaciones">
+                      <a href='/Estacion.aspx?Estacion=58'>Aeropuerto San Luis</a><a href='/Estacion.aspx?Estacion=59'>Aeropuerto Valle del Conlara</a><a href='/Estacion.aspx?Estacion=88'>AgroZAL</a><a href='/Estacion.aspx?Estacion=1'>Alto Pelado</a><a href='/Estacion.aspx?Estacion=2'>Anchorena</a><a href='/Estacion.aspx?Estacion=3'>Bajada Nueva</a><a href='/Estacion.aspx?Estacion=4'>Baldecito</a><a href='/Estacion.aspx?Estacion=5'>Batavia</a><a href='/Estacion.aspx?Estacion=6'>Beazley</a><a href='/Estacion.aspx?Estacion=7'>Buena Esperanza</a><a href='/Estacion.aspx?Estacion=8'>Concarán</a><a href='/Estacion.aspx?Estacion=49'>Coronel Alzogaray</a><a href='/Estacion.aspx?Estacion=9'>Desaguadero</a><a href='/Estacion.aspx?Estacion=85'>Donovan</a><a href='/Estacion.aspx?Estacion=10'>El Amago</a><a href='/Estacion.aspx?Estacion=47'>El Trapiche</a><a href='/Estacion.aspx?Estacion=55'>Estancia Grande</a><a href='/Estacion.aspx?Estacion=89'>Filo-Merlo</a><a href='/Estacion.aspx?Estacion=12'>Fraga</a><a href='/Estacion.aspx?Estacion=13'>Justo Daract</a><a href='/Estacion.aspx?Estacion=14'>La Angelina</a><a href='/Estacion.aspx?Estacion=50'>La Botija</a><a href='/Estacion.aspx?Estacion=15'>La Calera</a><a href='/Estacion.aspx?Estacion=16'>La Cumbre</a><a href='/Estacion.aspx?Estacion=17'>La Esquina</a><a href='/Estacion.aspx?Estacion=87'>La Florida - Dique</a><a href='/Estacion.aspx?Estacion=19'>La Punilla</a><a href='/Estacion.aspx?Estacion=20'>La Punta</a><a href='/Estacion.aspx?Estacion=21'>La Toma</a><a href='/Estacion.aspx?Estacion=22'>La Tranca</a><a href='/Estacion.aspx?Estacion=23'>Lafinur</a><a href='/Estacion.aspx?Estacion=56'>Las Chacras</a><a href='/Estacion.aspx?Estacion=54'>Los Coros</a><a href='/Estacion.aspx?Estacion=26'>Martín de Loyola</a><a href='/Estacion.aspx?Estacion=27'>Merlo</a><a href='/Estacion.aspx?Estacion=48'>Merlo Alto</a><a href='/Estacion.aspx?Estacion=28'>Naschel</a><a href='/Estacion.aspx?Estacion=44'>Navia</a><a href='/Estacion.aspx?Estacion=29'>Nogolí</a><a href='/Estacion.aspx?Estacion=30'>Nueva Galia</a><a href='/Estacion.aspx?Estacion=92'>Parapente Merlo</a><a href='/Estacion.aspx?Estacion=31'>Paso Grande</a><a href='/Estacion.aspx?Estacion=51'>Potrero de los Funes</a><a href='/Estacion.aspx?Estacion=53'>Quebrada de las Higueritas</a><a href='/Estacion.aspx?Estacion=32'>San Francisco</a><a href='/Estacion.aspx?Estacion=46'>San Luis Rural</a><a href='/Estacion.aspx?Estacion=34'>San Martín</a><a href='/Estacion.aspx?Estacion=36'>San Miguel</a><a href='/Estacion.aspx?Estacion=35'>Santa Rosa</a><a href='/Estacion.aspx?Estacion=52'>Soven</a><a href='/Estacion.aspx?Estacion=37'>Tilisarao</a><a href='/Estacion.aspx?Estacion=38'>Unión</a><a href='/Estacion.aspx?Estacion=45'>Valle de Pancanta</a><a href='/Estacion.aspx?Estacion=86'>Varela</a><a href='/Estacion.aspx?Estacion=39'>Villa de Praga</a><a href='/Estacion.aspx?Estacion=40'>Villa Gral. Roca</a><a href='/Estacion.aspx?Estacion=41'>Villa Larca</a><a href='/Estacion.aspx?Estacion=42'>Villa Mercedes</a><a href='/Estacion.aspx?Estacion=60'>Villa Reynolds</a><a href='/Estacion.aspx?Estacion=43'>Zanjitas</a>
+                </div></li>
+                 <li class="dropdown"> <a href="javascript:void(0)" class="dropbtn">San Luis Agua</a>
+                  <div class="dropdown-content" id="MenuEstacionesSLA">
+                      <a href='/Estacion.aspx?Estacion=1734'>Caldenadas</a><a href='/Estacion.aspx?Estacion=1735'>Cañada Honda</a><a href='/Estacion.aspx?Estacion=1736'>Carolina</a><a href='/Estacion.aspx?Estacion=1737'>Cerros Largos</a><a href='/Estacion.aspx?Estacion=1739'>Cienaga de INTI Huasi</a><a href='/Estacion.aspx?Estacion=1738'>Colonia Los Manantiales</a><a href='/Estacion.aspx?Estacion=90'>Dique Antonio E. Aguero-Río Grande</a><a href='/Estacion.aspx?Estacion=77'>Dique La Huertita</a><a href='/Estacion.aspx?Estacion=78'>Dique Las Palmeras</a><a href='/Estacion.aspx?Estacion=501'>Dique Potrero De Los Funes</a><a href='/Estacion.aspx?Estacion=98'>Dique San Felipe</a><a href='/Estacion.aspx?Estacion=65'>El Arenal</a><a href='/Estacion.aspx?Estacion=1749'>El Manantial Escondido</a><a href='/Estacion.aspx?Estacion=1740'>El Morro</a><a href='/Estacion.aspx?Estacion=1741'>Eleodoro Lobos</a><a href='/Estacion.aspx?Estacion=97'>Embalse Boca del Río</a><a href='/Estacion.aspx?Estacion=91'>Embalse la Florida</a><a href='/Estacion.aspx?Estacion=96'>Embalse Nogolí</a><a href='/Estacion.aspx?Estacion=95'>Embalse Paso de las Carretas</a><a href='/Estacion.aspx?Estacion=94'>Embalse Saladillo</a><a href='/Estacion.aspx?Estacion=68'>Estancia Samay-Huasi</a><a href='/Estacion.aspx?Estacion=1743'>INTI Huasi</a><a href='/Estacion.aspx?Estacion=1744'>Juan Llerena</a><a href='/Estacion.aspx?Estacion=66'>La Estancia</a><a href='/Estacion.aspx?Estacion=1745'>La Petra - Esc. 238 Clodoveo</a><a href='/Estacion.aspx?Estacion=1746'>La Represa</a><a href='/Estacion.aspx?Estacion=61'>Laguna Larga</a><a href='/Estacion.aspx?Estacion=1733'>Las Barranquitas</a><a href='/Estacion.aspx?Estacion=62'>Las Chacras(San Martín)</a><a href='/Estacion.aspx?Estacion=1747'>Lavaisse</a><a href='/Estacion.aspx?Estacion=1748'>Liborio Luna</a><a href='/Estacion.aspx?Estacion=69'>Mesilla del Cura</a><a href='/Estacion.aspx?Estacion=1750'>Paso de las Carretas</a><a href='/Estacion.aspx?Estacion=1751'>Paso del Rey</a><a href='/Estacion.aspx?Estacion=1752'>Pedernera</a><a href='/Estacion.aspx?Estacion=1742'>Riocito</a><a href='/Estacion.aspx?Estacion=1753'>Saladillo - Centro Cultural</a><a href='/Estacion.aspx?Estacion=1754'>Santa Isabel</a><a href='/Estacion.aspx?Estacion=63'>Tala Verde</a><a href='/Estacion.aspx?Estacion=1755'>Virorco</a><a href='/Estacion.aspx?Estacion=1756'>Vizcacheras</a>
+                </div></li>
+                 <!--
+                 <li class="dropdown"> <a href="javascript:void(0)" class="dropbtn">INTA</a>
+                  <div class="dropdown-content" id="MenuEstacionesINTA">
+                      
+                </div></li>-->
+                 <li class="dropdown" id="dMenuPronostico"> <a href="javascript:void(0)" class="dropbtn">Pronóstico</a>
+                  <div class="dropdown-content" id="MenuPronostico">
+                      <a href='/Pronostico.aspx?Estacion=58'>Aeropuerto San Luis</a><a href='/Pronostico.aspx?Estacion=59'>Aeropuerto Valle del Conlara</a><a href='/Pronostico.aspx?Estacion=2'>Anchorena</a><a href='/Pronostico.aspx?Estacion=3'>Bajada Nueva</a><a href='/Pronostico.aspx?Estacion=5'>Batavia</a><a href='/Pronostico.aspx?Estacion=6'>Beazley</a><a href='/Pronostico.aspx?Estacion=7'>Buena Esperanza</a><a href='/Pronostico.aspx?Estacion=9'>Desaguadero</a><a href='/Pronostico.aspx?Estacion=47'>El Trapiche</a><a href='/Pronostico.aspx?Estacion=55'>Estancia Grande</a><a href='/Pronostico.aspx?Estacion=12'>Fraga</a><a href='/Pronostico.aspx?Estacion=13'>Justo Daract</a><a href='/Pronostico.aspx?Estacion=14'>La Angelina</a><a href='/Pronostico.aspx?Estacion=50'>La Botija</a><a href='/Pronostico.aspx?Estacion=15'>La Calera</a><a href='/Pronostico.aspx?Estacion=17'>La Esquina</a><a href='/Pronostico.aspx?Estacion=87'>La Florida - Dique</a><a href='/Pronostico.aspx?Estacion=19'>La Punilla</a><a href='/Pronostico.aspx?Estacion=20'>La Punta</a><a href='/Pronostico.aspx?Estacion=21'>La Toma</a><a href='/Pronostico.aspx?Estacion=22'>La Tranca</a><a href='/Pronostico.aspx?Estacion=23'>Lafinur</a><a href='/Pronostico.aspx?Estacion=54'>Los Coros</a><a href='/Pronostico.aspx?Estacion=26'>Martín de Loyola</a><a href='/Pronostico.aspx?Estacion=27'>Merlo</a><a href='/Pronostico.aspx?Estacion=28'>Naschel</a><a href='/Pronostico.aspx?Estacion=29'>Nogolí</a><a href='/Pronostico.aspx?Estacion=30'>Nueva Galia</a><a href='/Pronostico.aspx?Estacion=31'>Paso Grande</a><a href='/Pronostico.aspx?Estacion=51'>Potrero de los Funes</a><a href='/Pronostico.aspx?Estacion=82'>Quines</a><a href='/Pronostico.aspx?Estacion=32'>San Francisco</a><a href='/Pronostico.aspx?Estacion=34'>San Martín</a><a href='/Pronostico.aspx?Estacion=37'>Tilisarao</a><a href='/Pronostico.aspx?Estacion=38'>Unión</a><a href='/Pronostico.aspx?Estacion=39'>Villa de Praga</a><a href='/Pronostico.aspx?Estacion=40'>Villa Gral. Roca</a><a href='/Pronostico.aspx?Estacion=41'>Villa Larca</a><a href='/Pronostico.aspx?Estacion=42'>Villa Mercedes</a>
+                </div></li>
+                 <li class="dropdown"> <a href="javascript:void(0)" class="dropbtn">Informes</a>
+                <div class="dropdown-content">
+                    <a href="InformeAgro.aspx" id="MenuInformeAgro">Horas e Índices de Frío</a>
+                    <a href="InformeMensual.aspx" id="MenuInformeMensual">Datos del Mes</a>
+                    <a href="InformeAnual.aspx" id="MenuInformeAnual">Datos del Año</a>
+                    <a href="InformePorPeriodo.aspx">Por Período</a>                                                      
+                    <a href="InformeGrafico.aspx" id="MenuInformeGrafico">Gráficos</a>     
+                    <a href="InformeTemp.aspx">Precipitación y Temperatura</a>
+                    <a href="InformeViento.aspx">Viento</a>
+                </div>
+                </li>
+                 <li class="dropdown"> <a href="javascript:void(0)" class="dropbtn">Atlas Climático</a>
+                <div class="dropdown-content">
+                    <!--<a href="AtlasClimatico.aspx" id="MenuAtlasClimatico">Mapa Interactivo</a>-->
+                    <a href="AtlasClimaticoDescargas.aspx" id="MenuAtlasClimaticoDescargas">Precipitaciones</a>
+                    <a href="AtlasClimaticoDescargasTemp.aspx" id="MenuAtlasClimaticoTemperturaDescargas">Temperatura</a>
+                    <a href="AtlasClimaticoTempMinMaxAbs.aspx" id="MenuAtlasClimaticoTempMinMaxAbs">Temperatura Min y Máx Absoluta</a>
+                </div>
+                </li>
+                <li><a href="Libros.aspx">Publicaciones</a></li>
+                <li><a href="NOAA.aspx">NOAA</a></li>
+                <li><a href="Aplicaciones.aspx">Aplicaciones</a></li>
+                <li><a href="Contacto.aspx">Contacto</a></li>
+            </ul>
+         </div>
+    </div></div>
+    <div class="ContenedorCentro">
+        <div class="Centro">
+
+        
+    <h1 id="ContentPlaceHolder1_Titulo">Datos de la estación: San Luis Rural</h1>
+    <div class="BoxContainer">
+    <div class="Box AlturaBox">
+        <div class="TituloBox">Condiciones de la hora: <span id="ContentPlaceHolder1_lblHora" class="BoxValue">21:03</span></div>
+        <div class="ContenidoBox">
+            <!--Temperatura -->
+            <div id="ContentPlaceHolder1_divTemperatura" class="LineContenidoBox">
+                <img class="Icon" src="/static/images/icoTemp.png" width="16" height="16" border="0" />
+                <label class="BoxCaptionPrincipal">Temperatura:</label>
+                <label id="ContentPlaceHolder1_lblTemperatura" class="BoxValue">11,8</label>
+                <label class="BoxUnidadMedida">ºC</label>
+            </div>
+            <!--Precipitación -->
+            <div id="ContentPlaceHolder1_divPrecipitacionTitulo" class="LineContenidoBox">
+                <img class="Icon" src="/static/images/icoLluvia.png" width="16" height="16" border="0" />
+                <label id="ContentPlaceHolder1_lblPrecipitacionTitulo" class="BoxCaptionPrincipal BoxCaptionExtendido">Precipitación</label>
+            </div>
+            <div id="ContentPlaceHolder1_divPrecipitacion" class="LineContenidoBox">
+                <label class="BoxCaptionSecundario">Última Hora:</label>
+                <label id="ContentPlaceHolder1_lblPrecipitacion" class="BoxValue">0,1</label>
+                <label class="BoxUnidadMedida">mm</label>
+            </div>
+            <div id="ContentPlaceHolder1_divPrecipitacion24h" class="LineContenidoBox">
+                <label class="BoxCaptionSecundario">Últimas 24 hs:</label>
+                <label id="ContentPlaceHolder1_lblPrecipitacion24h" class="BoxValue">0,1</label>
+                <label class="BoxUnidadMedida">mm</label>
+            </div>
+            <div id="ContentPlaceHolder1_divPrecipitacion30d" class="LineContenidoBox">
+                <label class="BoxCaptionSecundario">Últimos 30 días:</label>
+                <label id="ContentPlaceHolder1_lblPrecipitacion30d" class="BoxValue">77,5</label>
+                <label class="BoxUnidadMedida">mm</label>
+                
+            </div>
+            <div id="ContentPlaceHolder1_divPrecipitacionAnio" class="LineContenidoBox">
+                <label class="BoxCaptionSecundario">Total del año a la fecha:</label>
+                <label id="ContentPlaceHolder1_lblPrecipitacionAnio" class="BoxValue">397,8</label>
+                <label class="BoxUnidadMedida">mm</label>
+                <label id="ContentPlaceHolder1_lblReferenciaPrecipitacionAnio" class="BoxReferencia"><a title="Por inconvenientes técnicos no se registraron todos los datos durante el periodo, el valor de lluvia informado es igual o menor al real.<br>Los datos de los últimos dos meses pueden ser datos faltantes por falta de comunicación que  pueden ser recuperados con posterioridad." href="DatosFaltantes.aspx?var=pp&FechaDesde=20260101&FechaHasta=20261106" class="ToolTipLink">(*)</a></label>
+            </div>
+            <!--Humedad -->
+            <div id="ContentPlaceHolder1_divHumedad" class="LineContenidoBox">
+                <img class="Icon" src="/static/images/icoHumedad.png" width="16" height="16" border="0" />
+                <label class="BoxCaptionPrincipal">Humedad:</label>
+                <label id="ContentPlaceHolder1_lblHumedad" class="BoxValue">100,0</label>
+                <label class="BoxUnidadMedida">%</label>
+            </div>
+            <!--Viento -->
+            <div id="ContentPlaceHolder1_divViento" class="LineContenidoBox">
+                <img class="Icon" src="/static/images/icoViento.png" width="16" height="16" border="0" />
+                <label class="BoxCaptionPrincipal">Viento</label>
+            </div>
+            <div id="ContentPlaceHolder1_divDireccionViento" class="LineContenidoBox">
+                <label class="BoxCaptionSecundario">Dirección:</label>
+                <label id="ContentPlaceHolder1_lblDireccionViento" class="BoxValue">SE/146</label>
+                <label class="BoxUnidadMedida">º</label>
+            </div>
+            <div id="ContentPlaceHolder1_divVelocidadViento" class="LineContenidoBox">
+                <label class="BoxCaptionSecundario">Intensidad:</label>
+                <label id="ContentPlaceHolder1_lblVelocidadViento" class="BoxValue">20,5(11,1)</label>
+                <label class="BoxUnidadMedida">km/h(nudos)</label>
+            </div>
+            <!--Presión -->
+            
+            <!--Radiación Solar -->
+            
+            <!--Temperatura del Suelo -->
+            <div id="ContentPlaceHolder1_divTemperaturaSueloTitulo" class="LineContenidoBox">
+                <img class="Icon" src="/static/images/icoTemp.png" width="16" height="16" border="0" />
+                <label class="BoxCaptionPrincipal">Temperatura del Suelo</label>
+            </div>
+            <div id="ContentPlaceHolder1_divTemperaturaSuelo1" class="LineContenidoBox">
+                <label class="BoxCaptionSecundario">5 cm de profundidad:</label>
+                <label id="ContentPlaceHolder1_lblTemperaturaSuelo1" class="BoxValue">19,5</label>
+                <label class="BoxUnidadMedida">ºC</label>
+            </div>
+            <div id="ContentPlaceHolder1_divTemperaturaSuelo2" class="LineContenidoBox">
+                <label class="BoxCaptionSecundario">10 cm de profundidad:</label>
+                <label id="ContentPlaceHolder1_lblTemperaturaSuelo2" class="BoxValue">19,9</label>
+                <label class="BoxUnidadMedida">ºC</label>
+            </div>
+            <div id="ContentPlaceHolder1_divTemperaturaSuelo3" class="LineContenidoBox">
+                <label class="BoxCaptionSecundario">30 cm de profundidad:</label>
+                <label id="ContentPlaceHolder1_lblTemperaturaSuelo3" class="BoxValue">19,4</label>
+                <label class="BoxUnidadMedida">ºC</label>
+            </div>
+            
+            
+            
+            
+            
+            
+            <!--Humedad del Suelo -->
+            
+            
+            
+            
+            
+            <!--Brillo Nocturno -->
+            
+            <!--Nivel del Agua -->
+            
+            <!--Temperatura del Agua -->
+            
+        </div>
+    </div>
+    <div class="Box AlturaBox">
+        <div class="TituloBox">Ubicación</div>
+        <div class="ContenidoBox">
+            <div class="LineContenidoBox">
+                <label class="BoxCaptionPrincipal">Latitud:</label>
+                <label id="ContentPlaceHolder1_lblLatitud" class="BoxValueExtendido">33&#186; 20&#39; 9,7440&#39;&#39; Sur</label>
+            </div>
+            <div class="LineContenidoBox">
+                <label class="BoxCaptionPrincipal">Longitud:</label>
+                <label id="ContentPlaceHolder1_lblLongitud" class="BoxValueExtendido">66&#186; 26&#39; 7,0440&#39;&#39; Oeste</label>
+            </div>
+            <div class="LineContenidoBox">
+                <label class="BoxCaptionPrincipal">Altura:</label>
+                <label id="ContentPlaceHolder1_lblAltura" class="BoxValueExtendido">602 mts</label>
+            </div>
+            <div id="map-canvas" style="width:374px;height:250px"><iframe src="https://maps.google.com/maps?q=-33.34000000000000,-66.44000000000000&t=&z=13&ie=UTF8&iwloc=&output=embed" id="ContentPlaceHolder1_gmap_canvas" width="374" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"></iframe></div>
+        </div>
+    </div>
+    <!-- -->
+    <div id="ContentPlaceHolder1_divCondicionesExtremas" class="Box AlturaBox">
+        <div class="TituloBox">Condiciones Extremas</div>
+        <div class="ContenidoBox">
+            <!--Precipitación -->
+            <div id="ContentPlaceHolder1_divHoy" class="LineContenidoBox">
+                <label id="ContentPlaceHolder1_Label3" class="BoxCaptionPrincipal BoxCaptionExtendido">De la fecha</label>
+            </div>
+            <div id="ContentPlaceHolder1_divTempMaxHoy" class="LineContenidoBox">
+                <label class="BoxCaptionSecundarioCorto">Temp Máxima:</label>
+                <label id="ContentPlaceHolder1_lblTempMaxHoy" class="BoxValueExtendidoLargo">24 &#186;C a las 00:09</label>
+            </div>
+            <div id="ContentPlaceHolder1_divTempMinHoy" class="LineContenidoBox">
+                <label class="BoxCaptionSecundarioCorto">Temp Mínima:</label>
+                <label id="ContentPlaceHolder1_lblTempMinHoy" class="BoxValueExtendidoLargo">12 &#186;C a las 20:52</label>
+            </div>
+            <div id="ContentPlaceHolder1_divVientoMaxHoy" class="LineContenidoBox">
+                <label class="BoxCaptionSecundarioCorto">Viento Max y Dir:</label>
+                <label id="ContentPlaceHolder1_lblVvMaxHoy" class="BoxValueExtendidoLargo">47,0 km/h (25,4 nudos) SE/142&#186; a las 15:41</label>
+            </div>
+            <div id="ContentPlaceHolder1_divAyer" class="LineContenidoBox">
+                <label id="ContentPlaceHolder1_Label1" class="BoxCaptionPrincipal BoxCaptionExtendido">De Ayer</label>
+            </div>
+            <div id="ContentPlaceHolder1_divTempMaxAyer" class="LineContenidoBox">
+                <label class="BoxCaptionSecundarioCorto">Temp Máxima:</label>
+                <label id="ContentPlaceHolder1_lblTempMaxAyer" class="BoxValueExtendidoLargo">31 &#186;C a las 16:11</label>
+            </div>
+            <div id="ContentPlaceHolder1_divTempMinAyer" class="LineContenidoBox">
+                <label class="BoxCaptionSecundarioCorto">Temp Mínima:</label>
+                <label id="ContentPlaceHolder1_lblTempMinAyer" class="BoxValueExtendidoLargo">11 &#186;C a las 02:10</label>
+            </div>
+            <div id="ContentPlaceHolder1_divVientoMaxAyer" class="LineContenidoBox">
+                <label class="BoxCaptionSecundarioCorto">Viento Max y Dir:</label>
+                <label id="ContentPlaceHolder1_lblVvMaxAyer" class="BoxValueExtendidoLargo">52,2 km/h (28,2 nudos) ENE/59&#186; a las 23:40</label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- -->
+    <!-- -->
+    <div class="Box AlturaBox">
+        <div class="TituloBox">Condiciones Astronómicas del <label id="lblFechaAstro" ></label></div>
+        <div class="ContenidoBox">
+            <!--Fecha -->
+            <div class="LineContenidoBoxFecha">
+                <div id="CalendarioAstro"></div>
+            </div>
+            <!--Salida del Sol -->
+            <div class="LineContenidoBox">
+                <label class="BoxCaptionPrincipal">Salida del Sol:</label>
+                <label id="lblSalidaDelSol" class="BoxValueExtendido"></label>
+            </div>
+            <!--Puesta del Sol -->
+            <div class="LineContenidoBox">
+                <label class="BoxCaptionPrincipal">Puesta del Sol:</label>
+                <label id="lblPuestaDelSol" class="BoxValueExtendido"></label>
+            </div>
+            <!--Amanece -->
+            <div class="LineContenidoBox">
+                <label class="BoxCaptionPrincipal">Amanece:</label>
+                <label id="lblAmanece" class="BoxValueExtendido"></label>
+            </div>
+            <!--Anochece -->
+            <div class="LineContenidoBox">
+                <label class="BoxCaptionPrincipal">Anochece:</label>
+                <label id="lblAnochece" class="BoxValueExtendido"></label>
+            </div>
+            <!--Duración del Día -->
+            <div class="LineContenidoBox">
+                <label class="BoxCaptionPrincipal">Duración del Día:</label>
+                <label id="lblDuracionDelDia" class="BoxValueExtendido"></label>
+            </div>
+            <!--Horas de Luz -->
+            <div class="LineContenidoBox">
+                <label class="BoxCaptionPrincipal">Horas de Luz:</label>
+                <label id="lblHorasDeLuz" class="BoxValueExtendido"></label>
+            </div>
+        </div>
+    </div>
+    <div id="ContentPlaceHolder1_divGraficoTemp" class="Box AlturaBox">
+        <div class="TituloBox">Gráfico Temperaturas 24hs</div>
+        <div class="ContenidoBox">
+            <div id="chartTemp_div" class="OnlyScreen" style="width:374px;height:250px"></div>
+            <div>
+                <a href="javascript:GuardarImagen('imgTemp24','Temperatura24hs.png');"><img title="Guardar" class="ActionIcon" src="/static/images/icoSave.png" width="20" height="20" border="0" /></a>
+                <a href="ObtenerCsv.aspx?estacion=46&tipo=temp24&fechahasta=20261106210300"><img title="Exportar Datos" class="ActionIcon" src="/static/images/icoExcel.png" width="20" height="20" border="0" /></a>
+            </div>
+              <div id="chartTempPrint_div" class="OnlyPrint" style="width:374px;height:250px"></div>            
+        </div>
+    </div>
+    
+     
+    </div> 
+
+        <div><br /></div>
+        </div>
+    </div>
+    <div class="ContenedorFooter">
+        <div class="Footer">
+            <img src="static/images/LogoGobierno.png" id="imgLogosFooter" widht="369" height="91" class="imgLogosFooter" alt="" title="" border="0" />
+            <img src="static/images/LogoSL3.png" id="imgSL3Footer" widht="386" height="91" class="imgSL3Footer" alt="" title="" border="0" />
+        </div>
+    </div>
+
+
+
+   </form><form name="PngForm" id="PngForm" method="post" action="ObtenerPng.aspx"><input type="hidden" name="PngFileName" id="PngFileName" value="" /><input type="hidden" name="PngFile" id="PngFile" value="" /></form> 
+<script type="text/javascript">
+    var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+    document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+    try {
+        var pageTracker = _gat._getTracker("UA-8195441-6");
+        pageTracker._trackPageview();
+    } catch (err) { }
+</script>
+</body>
+</html>

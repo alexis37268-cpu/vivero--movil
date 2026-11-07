@@ -2,5 +2,17 @@
   "appId": "com.alexis.viverodomovil",
   "appName": "Vivero Sol Puntano",
   "webDir": "www",
-  "android": { "backgroundColor": "#FFFFFF" }
+  "android": {
+    "backgroundColor": "#FFFFFF"
+  },
+  "plugins": {
+    "BackgroundRunner": {
+      "label": "com.alexis.viverodomovil.clima",
+      "src": "runners/clima.js",
+      "event": "revisarClima",
+      "repeat": true,
+      "interval": 15,
+      "autoStart": true
+    }
+  }
 }

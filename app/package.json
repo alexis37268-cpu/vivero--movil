@@ -6,7 +6,8 @@
   "dependencies": {
     "@capacitor/android": "6.1.2",
     "@capacitor/core": "6.1.2",
-    "mqtt": "5.10.1"
+    "mqtt": "5.10.1",
+    "@capacitor/background-runner": "2.1.0"
   },
   "devDependencies": {
     "@capacitor/assets": "3.0.5",

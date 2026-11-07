@@ -100,6 +100,21 @@
   .clima .fuente{font-size:11px;opacity:.7;margin-top:8px}
   .interruptor{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;color:var(--ink);margin:0}
   .interruptor input{width:auto;transform:scale(1.4);accent-color:var(--verde)}
+  .btn.chico{min-height:0;padding:6px 12px;font-size:13px}
+  .af-top{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+  .af-top div{background:var(--campo);border-radius:10px;padding:8px 10px}
+  .af-top small{display:block;color:var(--muted);font-size:12px}
+  .af-top b{font-size:18px;font-variant-numeric:tabular-nums}
+  .af-pron{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+  .af-pron > div{border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;font-size:13px}
+  .af-pron b{display:block;font-size:14px}
+  .af-pron .mm{font-size:16px;font-weight:700;margin:2px 0;font-variant-numeric:tabular-nums}
+  .af-pron .mm .fr{color:var(--azul)} .af-pron .mm .ca{color:var(--rojo)}
+  .af-pron small{color:var(--muted);display:block;line-height:1.25}
+  .card h3{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:12px 0 0;font-weight:600}
+  .permisos{border:1px dashed var(--sol);background:var(--ambar-claro);color:var(--ink)}
+  .permisos p{margin:0 0 10px;font-size:14px}
+  .ok-txt{color:var(--verde);font-weight:600} .mal-txt{color:var(--rojo);font-weight:600}
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
 </style>
@@ -140,6 +155,31 @@
         <span class="sp"><b></b>Ajustes (abre/cierra, riega/corta)</span>
       </div>
       <p class="nota" id="g-nota"></p>
+    </div>
+
+    <div class="card permisos" id="c-permisos" hidden>
+      <h2>Avisos del clima</h2>
+      <p>Para avisarte de heladas, ráfagas y alertas del SMN <b>aunque la app esté cerrada</b>, permití las notificaciones y que Android no la frene.</p>
+      <div class="botones dos">
+        <button class="btn prim" id="perm-activar">Activar avisos</button>
+        <button class="btn" id="perm-auto" hidden>Inicio automático</button>
+      </div>
+      <p class="nota" id="perm-nota"></p>
+    </div>
+
+    <div class="card" id="c-afuera" hidden>
+      <div class="graf-cab"><h2>Afuera</h2><button class="btn chico" id="af-act">Actualizar</button></div>
+      <div class="af-top">
+        <div><small>Temperatura</small><b id="af-temp">--</b></div>
+        <div><small>Humedad</small><b id="af-hum">--</b></div>
+        <div><small>Viento</small><b id="af-viento">--</b></div>
+      </div>
+      <div class="fila"><span>Ráfaga máx. hoy</span><span class="estado" id="af-rafaga">—</span></div>
+      <div class="fila"><span>Lluvia 24 h / 30 días</span><span class="estado" id="af-lluvia">—</span></div>
+      <div class="fila"><span>Suelo 5 / 10 / 30 cm</span><span class="estado" id="af-suelo">—</span></div>
+      <h3 id="af-pron-tit">Pronóstico</h3>
+      <div class="af-pron" id="af-pron"></div>
+      <p class="nota" id="af-nota">Cargando…</p>
     </div>
 
     <div class="card" style="margin-top:12px">
@@ -202,6 +242,21 @@
       <p class="nota" id="ajustes-nota">Los valores quedan guardados en el equipo, aunque se corte la luz.</p>
       <div class="botones dos">
         <button type="button" class="btn" id="ajustes-recargar">Volver a leer</button>
+        <button type="submit" class="btn prim">Guardar</button>
+      </div>
+    </form>
+
+    <form class="card" id="f-clima" hidden>
+      <h2>Clima de afuera y avisos</h2>
+      <div class="doble">
+        <div><label for="cl-helada">Aviso de helada si la mínima baja de (°C)</label><input id="cl-helada" type="number" step="0.5" inputmode="decimal"></div>
+        <div><label for="cl-rafaga">Aviso de ráfaga desde (km/h)</label><input id="cl-rafaga" type="number" step="5" inputmode="numeric"></div>
+      </div>
+      <label class="interruptor" for="cl-avisos" style="margin-top:12px">Avisos en el celular con la app cerrada <input id="cl-avisos" type="checkbox"></label>
+      <p class="nota">Datos: REM (Gobierno de San Luis), estación San Luis Rural, y pronóstico de La Punta. Alertas: SMN. Android revisa cada 15 min o más.</p>
+      <p class="nota" id="cl-permisos"></p>
+      <div class="botones dos">
+        <button type="button" class="btn" id="cl-revisar">Revisar permisos</button>
         <button type="submit" class="btn prim">Guardar</button>
       </div>
     </form>
@@ -278,7 +333,7 @@
     $$('nav button').forEach(x => x.classList.toggle('on', x === b));
     $$('.vista').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.vista));
     if (b.dataset.vista === 'alarmas') { noLeidas = 0; pintarBadge(); }
-    if (b.dataset.vista === 'ajustes') cargarAjustes();
+    if (b.dataset.vista === 'ajustes') { cargarAjustes(); cargarClimaCfg(); }
     if (b.dataset.vista === 'inicio') setTimeout(dibujar, 0);   // al estar oculto no tenía ancho
     window.scrollTo(0, 0);
   }));
@@ -604,28 +659,33 @@
 
   // ---------- Alertas meteorológicas (SMN) ----------
   // Las publica el robot de GitHub cada 15 min en vivero/clima/alerta (retenido).
-  let clima = null, climaAbierto = false;
+  let clima = null, climaCelu = [], climaAbierto = false;   // clima = lo del robot por MQTT; climaCelu = lo que revisa el celular
   const vistasClima = new Set(leer('dm.climaVistas', []));
   const NIVEL_TXT = { amarillo: 'Alerta amarilla', naranja: 'Alerta naranja', rojo: 'Alerta roja', otro: 'Aviso' };
   const horaCorta = (ep) => new Date(ep * 1000).toLocaleString('es-AR', { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
 
-  function climaRecibir(c){
-    clima = c;
-    (c.alertas || []).forEach(a => {                 // cada alerta nueva va una vez a la lista de Alarmas
+  function climaRecibir(c){ clima = c; registrarAlertas(c.alertas || []); pintarClima(); }
+  function alertasCelu(l){ climaCelu = l; registrarAlertas(l); pintarClima(); }
+  function todasAlertas(){
+    const m = {};
+    ((clima && clima.alertas) || []).concat(climaCelu).forEach(a => { m[a.id] = a; });
+    return Object.values(m);
+  }
+  function registrarAlertas(lista){
+    lista.forEach(a => {                 // cada alerta nueva va una vez a la lista de Alarmas
       if (vistasClima.has(a.id)) return;
       vistasClima.add(a.id);
-      alarmas.unshift({ t: Date.now(), m: '🌩 ' + NIVEL_TXT[a.nivel] + ' del SMN: ' + a.evento + ' hasta ' + horaCorta(a.hasta) });
+      alarmas.unshift({ t: Date.now(), m: '🌩 ' + NIVEL_TXT[a.nivel] + ' (' + (a.fuente || 'SMN') + '): ' + a.evento + ' hasta ' + horaCorta(a.hasta) });
       alarmas = alarmas.slice(0, 50);
       if (!$('#v-alarmas').classList.contains('on')) noLeidas++;
       avisar('🌩 ' + NIVEL_TXT[a.nivel] + ': ' + a.evento);
     });
     guardar('dm.climaVistas', Array.from(vistasClima).slice(-100));
     guardar('dm.alarmas', alarmas); pintarAlarmas(); pintarBadge();
-    pintarClima();
   }
   function pintarClima(){
     const b = $('#clima'), ahora = Date.now() / 1000;
-    const vig = clima ? (clima.alertas || []).filter(a => a.hasta > ahora) : [];
+    const vig = todasAlertas().filter(a => a.hasta > ahora).sort((x, y) => x.desde - y.desde);
     b.hidden = !vig.length;
     if (!vig.length) return;
     const orden = { rojo: 3, naranja: 2, amarillo: 1, otro: 0 };
@@ -637,15 +697,14 @@
       const t = document.createElement('b'); t.textContent = '⚠ ' + NIVEL_TXT[a.nivel] + ': ' + a.evento;
       const h = document.createElement('small');
       h.textContent = (a.desde > ahora ? 'Desde ' + horaCorta(a.desde) + ' · ' : '') + 'Hasta ' + horaCorta(a.hasta) +
-                      (a.cierra ? ' · cierra el venteo' : '');
+                      (a.cierra && a.fuente !== 'REM' ? ' · cierra el venteo' : '');
       d.append(t, h);
       if (climaAbierto) { const p = document.createElement('p'); p.textContent = a.texto; d.append(p); }
       b.append(d);
     });
     const f = document.createElement('div'); f.className = 'fuente';
-    const viejo = ahora - clima.actualizado > 3600;
-    f.textContent = (climaAbierto ? '' : 'Tocá para ver el detalle · ') + 'Fuente: SMN' +
-                    (viejo ? ' · sin actualizar desde ' + horaCorta(clima.actualizado) : '');
+    const fuentes = Array.from(new Set(vig.map(a => a.fuente || 'SMN'))).join(' y ');
+    f.textContent = (climaAbierto ? '' : 'Tocá para ver el detalle · ') + 'Fuente: ' + fuentes;
     b.append(f);
   }
   $('#clima').addEventListener('click', () => { climaAbierto = !climaAbierto; pintarClima(); });
@@ -655,6 +714,123 @@
     if (ordenar('config/clima_cierra', e.target.checked ? 1 : 0))
       avisar(e.target.checked ? 'Con alerta se va a cerrar el venteo' : 'Las alertas solo van a avisar');
   });
+
+
+  // ---------- Clima de afuera (REM) y avisos con la app cerrada ----------
+  // El revisor (runners/clima.js) corre en segundo plano cada 15 min aunque la app esté cerrada:
+  // lee la REM y el SMN y manda la notificación. Acá solo se le piden los datos para mostrarlos.
+  const NATIVO = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const BR  = NATIVO ? window.Capacitor.Plugins.BackgroundRunner : null;
+  const BAT = NATIVO ? window.Capacitor.Plugins.Bateria : null;
+  const RUNNER = 'com.alexis.viverodomovil.clima';
+  let afuera = leer('dm.afuera', null);
+  let climaCfg = Object.assign({ helada: 2, rafaga: 60, avisos: true }, leer('dm.climaCfg', {}));
+  const coma = (v, d = 1) => v == null ? '--' : Number(v).toFixed(d).replace('.', ',');
+  const correr = (event, details) => BR.dispatchEvent({ label: RUNNER, event, details: details || {} });
+
+  async function actualizarAfuera(forzar){
+    if (!BR) return;
+    const nota = $('#af-nota');
+    try {
+      if (forzar) nota.textContent = 'Consultando la REM y el SMN…';
+      let r = await correr(forzar ? 'revisarClima' : 'ultimoClima');
+      if (r && r.value !== undefined && r.revisado === undefined) r = r.value;   // por si viene envuelto
+      if (r && r.revisado) { afuera = r; guardar('dm.afuera', r); alertasCelu(r.alertas || []); }
+      pintarAfuera();
+      if (!forzar && (!r || !r.revisado || Date.now() / 1000 - r.revisado > 15 * 60)) actualizarAfuera(true);
+    } catch (e) {
+      nota.textContent = 'No se pudo consultar el clima (' + (e && e.message || e) + '). Probá con Actualizar.';
+    }
+  }
+  function pintarAfuera(){
+    $('#c-afuera').hidden = !BR && !afuera;
+    const r = afuera; if (!r) return;
+    const e = r.estacion;
+    $('#af-temp').textContent   = e ? coma(e.temp) + ' °C' : '--';
+    $('#af-hum').textContent    = e ? Math.round(e.hum) + ' %' : '--';
+    $('#af-viento').textContent = e ? Math.round(e.viento) + ' km/h ' + e.vientoDir : '--';
+    $('#af-rafaga').textContent = e && e.rafagaHoy != null ? Math.round(e.rafagaHoy) + ' km/h (' + e.rafagaHora + ')' : '—';
+    $('#af-lluvia').textContent = e ? coma(e.lluvia24h) + ' / ' + coma(e.lluvia30d) + ' mm' : '—';
+    $('#af-suelo').textContent  = e ? e.suelo.map(v => coma(v)).join(' / ') + ' °C' : '—';
+    const p = r.pronostico, c = $('#af-pron');
+    c.innerHTML = '';
+    $('#af-pron-tit').textContent = 'Pronóstico' + (p && p.estacion ? ' (' + p.estacion + ')' : '');
+    (p ? p.dias : []).forEach(d => {
+      const div = document.createElement('div');
+      const b = document.createElement('b'); b.textContent = d.dia;
+      const mm = document.createElement('div'); mm.className = 'mm';
+      const fr = document.createElement('span'); fr.className = 'fr'; fr.textContent = coma(d.min, 0) + '°';
+      const ca = document.createElement('span'); ca.className = 'ca'; ca.textContent = coma(d.max, 0) + '°';
+      mm.append(fr, document.createTextNode(' / '), ca);
+      const s = document.createElement('small'); s.textContent = d.cielo + (d.lluvia ? ' · prob. lluvia' : '');
+      div.append(b, mm, s); c.append(div);
+    });
+    const h = new Date(r.revisado * 1000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    $('#af-nota').textContent = (e ? 'Estación ' + e.nombre + ' (dato de las ' + e.hora + ')' : '') +
+      ' · revisado ' + h + ' · Fuente: REM, Gobierno de San Luis' + (r.errores && r.errores.length ? ' · ⚠ ' + r.errores.join('; ') : '');
+  }
+  $('#af-act').addEventListener('click', () => actualizarAfuera(true));
+
+  // Permisos: notificaciones + que Android no frene la app (batería)
+  const MARCAS_AUTO = /xiaomi|redmi|poco|oppo|realme|vivo|huawei|honor|samsung/;
+  async function estadoPermisos(){
+    if (!BR) return null;
+    let notif = 'prompt', bat = { libre: true, marca: '' };
+    try { notif = (await BR.checkPermissions()).notifications; } catch (e) {}
+    try { if (BAT) bat = await BAT.estado(); } catch (e) {}
+    return { notif: notif === 'granted', bateria: !!bat.libre, marca: bat.marca || '' };
+  }
+  async function pintarPermisos(){
+    const st = await estadoPermisos(); if (!st) return;
+    const todo = st.notif && st.bateria;
+    $('#c-permisos').hidden = todo || !climaCfg.avisos;
+    $('#perm-auto').hidden = !MARCAS_AUTO.test(st.marca);
+    const txt = (st.notif ? '✔ Notificaciones' : '✖ Notificaciones') + ' · ' + (st.bateria ? '✔ Sin límite de batería' : '✖ Android puede frenar la app');
+    $('#perm-nota').textContent = txt;
+    $('#cl-permisos').innerHTML = '';
+    const sp = document.createElement('span'); sp.className = todo ? 'ok-txt' : 'mal-txt'; sp.textContent = txt;
+    $('#cl-permisos').append(sp);
+    if (MARCAS_AUTO.test(st.marca)) $('#cl-permisos').append(document.createTextNode(' · En tu marca de celular revisá también «Inicio automático».'));
+  }
+  async function pedirPermisos(){
+    if (!BR) return;
+    try { const p = await BR.checkPermissions(); if (p.notifications !== 'granted') await BR.requestPermissions({ apis: ['notifications'] }); } catch (e) {}
+    try { if (BAT && !(await BAT.estado()).libre) await BAT.pedir(); } catch (e) {}
+    setTimeout(pintarPermisos, 1500);                // el cartel de batería es otra pantalla: se revisa al volver
+  }
+  $('#perm-activar').addEventListener('click', pedirPermisos);
+  $('#cl-revisar').addEventListener('click', pedirPermisos);
+  $('#perm-auto').addEventListener('click', async () => {
+    try { await BAT.autoinicio(); avisar('Buscá «Vivero Sol Puntano» y activá el inicio automático'); } catch (e) {}
+  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { pintarPermisos(); actualizarAfuera(false); } });
+
+  // Ajustes de clima
+  function cargarClimaCfg(){
+    $('#f-clima').hidden = !BR;
+    $('#cl-helada').value = climaCfg.helada; $('#cl-rafaga').value = climaCfg.rafaga; $('#cl-avisos').checked = climaCfg.avisos;
+    pintarPermisos();
+  }
+  $('#f-clima').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const h = parseFloat($('#cl-helada').value), r = parseFloat($('#cl-rafaga').value);
+    if (!(h >= -10 && h <= 15) || !(r >= 20 && r <= 150)) { avisar('Helada entre -10 y 15 °C; ráfaga entre 20 y 150 km/h'); return; }
+    climaCfg = { helada: h, rafaga: r, avisos: $('#cl-avisos').checked };
+    guardar('dm.climaCfg', climaCfg);
+    try { await correr('guardarConfig', climaCfg); avisar('Ajustes del clima guardados'); actualizarAfuera(true); } catch (e) { avisar('No se pudo guardar'); }
+    if (climaCfg.avisos) pedirPermisos(); else pintarPermisos();
+  });
+
+  async function iniciarClima(){
+    pintarAfuera();
+    if (!BR) return;
+    try { await correr('guardarConfig', climaCfg); } catch (e) {}
+    const st = await estadoPermisos();
+    if (climaCfg.avisos && st && !st.notif && !leer('dm.permPedido', false)) { guardar('dm.permPedido', true); await pedirPermisos(); }
+    pintarPermisos();
+    actualizarAfuera(false);
+    setInterval(() => actualizarAfuera(true), 15 * 60e3);
+  }
 
   // ---------- Ajustes ----------
   // Mismos límites que valida el ESP32 (si no, lo rechaza y manda alarma)
@@ -747,7 +923,7 @@
   $('#c-desconectar').addEventListener('click', () => { desconectar(); avisar('Desconectado'); });
 
   // ---------- Arranque ----------
-  cargarConexion(); pintarAlarmas(); pintar(); pintarEquipos(); dibujar();
+  cargarConexion(); pintarAlarmas(); pintar(); pintarEquipos(); dibujar(); iniciarClima();
   if (cfg.pass) conectar();
   else { pill('aviso', 'Falta configurar'); $$('nav button')[3].click(); }
 })();

@@ -23,6 +23,7 @@ jobs:
       - name: Preparar
         run: |
           npm install
+          node prueba-clima/prueba.js   # el lector de clima tiene que andar antes de compilar
           node armar-www.js
           pip install pillow
           python3 icono.py

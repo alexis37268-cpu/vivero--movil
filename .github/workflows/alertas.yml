@@ -1,10 +1,11 @@
 # Robot de alertas meteorologicas del SMN para el vivero.
-# Corre solo cada 15 min (GitHub a veces lo atrasa unos minutos) y tambien a mano
-# desde la pestana Actions > "Alertas SMN" > Run workflow.
+# APAGADO: por ahora las alertas las revisa la app del celular (runner-clima.js).
+# Para que el ESP cierre el venteo solo con alertas, volver a poner el horario:
+#   schedule:
+#     - cron: '*/15 * * * *'
+# y cargar MQTT_USER / MQTT_PASS en los Secrets (ver README).
 name: Alertas SMN
 on:
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
   push:
     paths: ['robot/**', '.github/workflows/alertas.yml']

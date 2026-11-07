@@ -91,7 +91,18 @@ La app se conecta por **WebSocket con TLS (puerto 8084)**.
 
 > El hibernáculo y la oficina (LoRa) están en su propio repo: [vivero-hibernaculo-oficina](https://github.com/alexis37268-cpu/vivero-hibernaculo-oficina). La app sirve para los dos.
 
-## Alertas meteorológicas (SMN)
+## Clima de afuera y avisos en el celular (REM + SMN)
+
+La app trae un revisor que **Android ejecuta cada 15 min o más, aunque la app esté cerrada** (`app/runner-clima.js`, plugin Capacitor Background Runner):
+- **REM** (Red de Estaciones Meteorológicas, Gobierno de San Luis): datos medidos de la estación **San Luis Rural** (n.º 46) y pronóstico de 3 días de **La Punta** (n.º 20). Se muestran en Inicio, tarjeta *Afuera*.
+- **SMN**: alertas oficiales que cubren la zona.
+- **Notificación** en el celular con: alerta del SMN, helada pronosticada o medida (umbral en Ajustes, 2 °C por defecto) y ráfaga medida (60 km/h por defecto). Cada aviso llega una sola vez.
+
+Al abrir la app por primera vez pide los permisos: notificaciones y que Android no la frene por batería (y en Xiaomi, Samsung, etc. hay un botón para el *inicio automático*).
+La REM no tiene API: se leen sus páginas. Si cambian el sitio hay que ajustar `runner-clima.js` (`node prueba-clima/prueba.js` prueba el lector con páginas guardadas).
+Los avisos del celular **no mueven el venteo**: para eso está el robot de abajo (hoy apagado).
+
+## Alertas meteorológicas (SMN) por robot — apagado
 
 Un robot en GitHub Actions (`robot/alertas_smn.py`, workflow **Alertas SMN**) corre cada 15 min:
 lee los avisos oficiales del SMN (feed CAP, datos abiertos CC BY 4.0), se queda con los que cubren la
