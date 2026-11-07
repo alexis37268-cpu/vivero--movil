@@ -1,0 +1,17 @@
+name: Prueba REM 56
+on: push
+permissions:
+  contents: write
+jobs:
+  rem:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p rem
+          for e in 56; do
+            curl -sS -m 30 -A "SolPuntano-vivero/1.0" -o rem/pronostico$e.html -w "pronostico $e %{http_code} %{size_download}\n" "https://clima.sanluis.gob.ar/Pronostico.aspx?Estacion=$e"
+            curl -sS -m 30 -A "SolPuntano-vivero/1.0" -o rem/estacion$e.html -w "estacion $e %{http_code} %{size_download}\n" "https://clima.sanluis.gob.ar/Estacion.aspx?Estacion=$e"
+          done
+          git config user.name robot; git config user.email robot@users.noreply.github.com
+          git add rem; git commit -m "paginas REM [skip ci]"; git push
