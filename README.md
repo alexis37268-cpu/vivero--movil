@@ -44,6 +44,10 @@ Nadie necesita abrir puertos: los dos *salen* hacia el broker.
 | `cmd/config/riego_pausa_min` | número | min (por defecto 30) |
 | `cmd/estado` | cualquier cosa | Pide el estado al instante |
 | `cmd/historial` | cualquier cosa | Pide el historial para el gráfico de la app |
+| `cmd/registro` | cualquier cosa | Pide el registro de cambios (responde en `registro`, en partes) |
+| `cmd/usuario/alta` | `nombre;rol;hash;quien` | Alta o cambio de usuario (rol `admin` u `operario`). Solo un administrador (el primero siempre es admin) |
+| `cmd/usuario/baja` | `nombre;quien` | Baja de usuario (no se puede borrar al único administrador) |
+| `cmd/usuario/pin` | `nombre;hash;quien` | Cambio de PIN (el administrador o el mismo usuario) |
 | `cmd/config/clima_cierra` | `1` / `0` | Con alerta del SMN de viento, tormenta o granizo: cerrar el venteo (1, por defecto) o solo avisar (0) |
 
 Los valores fuera de rango se rechazan y se avisa por `alarma`.
@@ -123,3 +127,12 @@ Cierran el venteo: tormentas, viento, Zonda, granizo y nevadas, desde 30 min ant
 
 Prueba con avisos reales guardados: `python3 robot/prueba_alertas.py`.
 GitHub pausa los workflows programados de un repo público después de 60 días sin cambios: si pasa, se reactiva desde la pestaña Actions.
+
+## Usuarios y registro de cambios
+
+- Las órdenes van **firmadas**: `abrir;Juan` (valor`;`usuario). Sin `;` el equipo la toma como "sin usuario" (así siguen andando MQTTX y las apps viejas).
+- La lista de usuarios vive en el ESP y se publica retenida en `vivero/nodo1/usuarios` (`[{"n":"Juan","r":"admin","h":"…"}]`).
+  Del PIN solo se guarda `h` = primeros 16 caracteres hex de SHA-256 de `nodo1:nombre-en-minúsculas:PIN`.
+- **Operario**: modo, venteo y riego. **Administrador**: además ajustes y usuarios (lo controla la app y también el ESP).
+- **Registro**: el ESP anota `fecha|quién|qué` (incluye `panel` = pulsadores, `automatico` = lógica sola, `equipo` = encendido) en la flash, ~300 líneas (2 archivos de 150). Cada acción nueva sale al instante por `registro/nuevo`.
+- Seguridad: sirve para uso interno. Quien tenga la clave del broker puede mandar órdenes a mano con cualquier nombre.

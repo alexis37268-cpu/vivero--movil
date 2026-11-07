@@ -17,6 +17,7 @@
   #include <WiFi.h>
   #include <WiFiClientSecure.h> // TLS
   #include <Preferences.h>      // memoria no volatil (sobrevive a cortes de luz)
+  #include <LittleFS.h>         // archivos en la flash (registro de cambios)
 #endif
 #include <PubSubClient.h>       // cliente MQTT
 #include <DHT.h>
@@ -93,6 +94,7 @@ bool hayCambios = false;       // algo cambio -> publicar estado ya
 uint32_t cierreHasta = 0;
 bool     cierreAvisado = false;
 bool     climaCierreActivo();
+void     registrar(const String& quien, const String& que);
 
 // Arma un topic: t("estado") -> "vivero/nodo1/estado"
 String t(const char* sub) { return String(TOPIC_BASE "/") + sub; }
@@ -140,6 +142,7 @@ void publicarConfig() {
   j += ",\"recorrido\":true";                // la app muestra "Tiempo de recorrido del actuador"
   j += ",\"hist\":true";                     // este equipo guarda historial para el grafico
   j += ",\"clima_cierra\":" + String(cfg.climaCierra);
+  j += ",\"usuarios\":true";                  // este equipo maneja usuarios y registro
   j += "}";
   publicar(t("config"), j, true);
 }
@@ -306,6 +309,7 @@ void riegoTick() {
   if (riegoOn && millis() - riegoDesde > (unsigned long)cfg.riegoMaxMin * 60000UL) {
     riegoSet(false, "tiempo maximo");
     alarma("riego: se corto por tiempo maximo");
+    registrar("automatico", "corta el riego por tiempo maximo");
   }
 }
 
@@ -450,6 +454,195 @@ void publicarHistorial() {
 }
 
 // -------------------------------------------------------------
+//  Usuarios (nombre + PIN) y registro de cambios
+//
+//  La lista la carga el administrador desde la app y queda guardada
+//  aca, asi es la misma en todos los celulares. Del PIN solo se guarda
+//  un "hash" (un resumen que no permite leer el PIN).
+//  Cada orden llega "firmada": "abrir;Juan". El ESP anota quien,
+//  que y cuando en el registro (~300 acciones, en la flash).
+//  Tambien anota lo que se hace con los pulsadores ("panel") y lo
+//  que hace solo ("automatico").
+// -------------------------------------------------------------
+struct Usuario { String nombre; bool admin; String hash; };
+Usuario  usuarios[MAX_USUARIOS];
+uint8_t  nUsuarios = 0;
+bool     fsOk = false;
+uint16_t regLineas = 0;                    // lineas en el archivo actual
+const char* REG_ACTUAL   = "/reg0.txt";
+const char* REG_ANTERIOR = "/reg1.txt";
+
+int buscarUsuario(const String& n) {
+  for (uint8_t i = 0; i < nUsuarios; i++) if (usuarios[i].nombre.equalsIgnoreCase(n)) return i;
+  return -1;
+}
+// Sin usuarios cargados todo vale (como antes). Con usuarios: solo un administrador.
+bool esAdmin(const String& q) {
+  if (nUsuarios == 0) return true;
+  int i = buscarUsuario(q);
+  return i >= 0 && usuarios[i].admin;
+}
+String quienTxt(const String& q) { return q.length() ? q : String("sin usuario"); }
+
+// Saca lo que romperia el formato (separadores, comillas, saltos de linea)
+String limpiar(String s, uint8_t max) {
+  s.replace("|", "/"); s.replace(";", ","); s.replace("\"", "'"); s.replace("\\", "/");
+  s.replace("\n", " "); s.replace("\r", " "); s.trim();
+  if (s.length() > max) s = s.substring(0, max);
+  return s;
+}
+
+void usuariosGuardar() {
+  String l;
+  for (uint8_t i = 0; i < nUsuarios; i++) {
+    if (i) l += ';';
+    l += usuarios[i].nombre + ',' + (usuarios[i].admin ? 'a' : 'o') + ',' + usuarios[i].hash;
+  }
+  prefs.begin("usuarios", false);
+  prefs.putString("lista", l.c_str());
+  prefs.end();
+}
+
+void usuariosCargar() {
+  prefs.begin("usuarios", true);
+  String l = prefs.getString("lista", "");
+  prefs.end();
+  nUsuarios = 0;
+  while (l.length() && nUsuarios < MAX_USUARIOS) {
+    int pc = l.indexOf(';');
+    String u = pc >= 0 ? l.substring(0, pc) : l;
+    l = pc >= 0 ? l.substring(pc + 1) : "";
+    int c1 = u.indexOf(','), c2 = u.indexOf(',', c1 + 1);
+    if (c1 <= 0 || c2 <= c1) continue;
+    usuarios[nUsuarios++] = { u.substring(0, c1), u.substring(c1 + 1, c2) == "a", u.substring(c2 + 1) };
+  }
+  Serial.printf("[USUARIOS] %u cargados\n", nUsuarios);
+}
+
+// Retenido: la app lo recibe al conectarse (para la pantalla de ingreso)
+void publicarUsuarios() {
+  String j = "[";
+  for (uint8_t i = 0; i < nUsuarios; i++) {
+    if (i) j += ',';
+    j += "{\"n\":\"" + usuarios[i].nombre + "\",\"r\":\"" + (usuarios[i].admin ? "admin" : "operario") +
+         "\",\"h\":\"" + usuarios[i].hash + "\"}";
+  }
+  j += "]";
+  publicar(t("usuarios"), j, true);
+}
+
+void registrar(const String& quien, const String& que) {
+  String linea = String(ahoraEpoch()) + "|" + limpiar(quienTxt(quien), 20) + "|" + limpiar(que, 60);
+  Serial.println("[REG] " + linea);
+  publicar(t("registro/nuevo"), linea, false);     // la app lo ve al instante
+  if (!fsOk) return;
+  if (regLineas >= REG_POR_ARCHIVO) {               // se llena: el viejo se borra, el actual pasa a viejo
+    LittleFS.remove(REG_ANTERIOR);
+    LittleFS.rename(REG_ACTUAL, REG_ANTERIOR);
+    regLineas = 0;
+  }
+  File f = LittleFS.open(REG_ACTUAL, "a");
+  if (f) { f.println(linea); f.close(); regLineas++; }
+}
+
+void registroIniciar() {
+#if defined(ESP8266)
+  fsOk = LittleFS.begin();                          // ya montada por prefs8266 (no pasa nada si se repite)
+#else
+  fsOk = LittleFS.begin(true);                      // true = la formatea la primera vez
+#endif
+  if (!fsOk) { Serial.println("[REG] no se pudo montar la flash: el registro no se guarda"); return; }
+  File f = LittleFS.open(REG_ACTUAL, "r");
+  regLineas = 0;
+  if (f) { while (f.available()) if (f.read() == '\n') regLineas++; f.close(); }
+}
+
+// Manda el registro en partes chicas (del mas viejo al mas nuevo)
+void publicarRegistro() {
+  if (!mqtt.connected()) return;
+  const char* archivos[2] = { REG_ANTERIOR, REG_ACTUAL };
+  uint16_t total = 0;
+  if (fsOk) for (auto a : archivos) {
+    File f = LittleFS.open(a, "r");
+    if (f) { while (f.available()) if (f.read() == '\n') total++; f.close(); }
+  }
+  uint16_t partes = total ? (total + REG_POR_MENSAJE - 1) / REG_POR_MENSAJE : 1;
+  uint16_t p = 0, enParte = 0;
+  String j = "{\"p\":0,\"de\":" + String(partes) + ",\"l\":[";
+  if (fsOk) for (auto a : archivos) {
+    File f = LittleFS.open(a, "r");
+    if (!f) continue;
+    while (f.available()) {
+      String linea = f.readStringUntil('\n'); linea.trim();
+      if (!linea.length()) continue;
+      if (enParte) j += ',';
+      j += "\"" + linea + "\"";
+      if (++enParte >= REG_POR_MENSAJE) {
+        j += "]}"; publicar(t("registro"), j, false);
+        p++; enParte = 0;
+        j = "{\"p\":" + String(p) + ",\"de\":" + String(partes) + ",\"l\":[";
+      }
+    }
+    f.close();
+  }
+  if (enParte || total == 0) { j += "]}"; publicar(t("registro"), j, false); }
+}
+
+// cmd/usuario/alta  "nombre;rol;hash;quien"   (rol = admin | operario)
+// cmd/usuario/baja  "nombre;quien"
+// cmd/usuario/pin   "nombre;hash;quien"       (el admin, o el mismo usuario)
+void ordenUsuario(const String& accion, const String& crudo) {
+  String c[4]; uint8_t n = 0; int desde = 0;
+  while (n < 4) {
+    int p = crudo.indexOf(';', desde);
+    c[n++] = (p >= 0 ? crudo.substring(desde, p) : crudo.substring(desde));
+    if (p < 0) break;
+    desde = p + 1;
+  }
+  for (uint8_t i = 0; i < n; i++) c[i].trim();
+  String quien = n ? c[n - 1] : "";
+  String nombre = limpiar(c[0], 16);
+  bool hashOk = false;
+
+  if (accion == "alta" && n == 4) {
+    hashOk = c[2].length() == 16;
+    bool admin = c[1] == "admin" || nUsuarios == 0;           // el primero siempre es administrador
+    if (!esAdmin(quien)) { registrar(quien, "rechazado: alta de " + nombre + " (no es administrador)"); alarma("usuarios: solo un administrador puede dar de alta"); return; }
+    if (!nombre.length() || !hashOk) { alarma("usuarios: datos invalidos"); return; }
+    int i = buscarUsuario(nombre);
+    if (i < 0) {
+      if (nUsuarios >= MAX_USUARIOS) { alarma("usuarios: no entran mas de " + String(MAX_USUARIOS)); return; }
+      usuarios[nUsuarios++] = { nombre, admin, c[2] };
+      registrar(nUsuarios == 1 ? nombre : quien, "alta de usuario " + nombre + (admin ? " (administrador)" : " (operario)"));
+    } else {
+      usuarios[i].admin = admin; usuarios[i].hash = c[2];
+      registrar(quien, "modifica usuario " + nombre + (admin ? " (administrador)" : " (operario)"));
+    }
+  }
+  else if (accion == "baja" && n == 2) {
+    int i = buscarUsuario(nombre);
+    if (!esAdmin(quien)) { registrar(quien, "rechazado: baja de " + nombre); alarma("usuarios: solo un administrador puede dar de baja"); return; }
+    if (i < 0) return;
+    uint8_t admins = 0;
+    for (uint8_t k = 0; k < nUsuarios; k++) admins += usuarios[k].admin;
+    if (usuarios[i].admin && admins <= 1) { alarma("usuarios: no se puede borrar al unico administrador"); return; }
+    for (uint8_t k = i; k + 1 < nUsuarios; k++) usuarios[k] = usuarios[k + 1];
+    nUsuarios--;
+    registrar(quien, "baja de usuario " + nombre);
+  }
+  else if (accion == "pin" && n == 3) {
+    int i = buscarUsuario(nombre);
+    if (i < 0 || c[1].length() != 16) return;
+    if (!esAdmin(quien) && !usuarios[i].nombre.equalsIgnoreCase(quien)) { registrar(quien, "rechazado: cambio de PIN de " + nombre); return; }
+    usuarios[i].hash = c[1];
+    registrar(quien, "cambia el PIN de " + usuarios[i].nombre);
+  }
+  else return;
+  usuariosGuardar();
+  publicarUsuarios();
+}
+
+// -------------------------------------------------------------
 //  Alerta meteorologica (la manda el robot del SMN por MQTT)
 // -------------------------------------------------------------
 bool climaCierreActivo() {
@@ -473,35 +666,43 @@ void controlAuto() {
                                         : "alerta SMN: conviene cerrar el venteo (esta en manual) hasta las %02d:%02d",
              tl.tm_hour, tl.tm_min);
     alarma(txt);
+    registrar("automatico", txt);
     hayCambios = true;
   }
   if (!cierre && cierreAvisado) { cierreAvisado = false; hayCambios = true; Serial.println("[CLIMA] termino la alerta"); }
 
   if (!modoAuto) return;
-  if (cierre && venteo != V_CERRADO && venteo != V_CERRANDO) venteoCerrar();
+  if (cierre && venteo != V_CERRADO && venteo != V_CERRANDO) { venteoCerrar(); registrar("automatico", "cierra el venteo por alerta SMN"); }
 
   // Sin sensor no se decide nada: riego apagado, venteo queda donde esta
-  if (!sensorOk) { riegoSet(false, "sensor caido"); return; }
+  if (!sensorOk) { if (riegoOn) registrar("automatico", "corta el riego: sensor caido"); riegoSet(false, "sensor caido"); return; }
 
   // Venteo: abre arriba de tempAbrir, cierra abajo de tempCerrar.
   // Entre medio no hace nada (eso es la histeresis: evita que tiemble).
   if (cierre) { /* con alerta no se abre */ }
-  else if (temp >= cfg.tempAbrir && venteo != V_ABIERTO && venteo != V_ABRIENDO)
-    venteoAbrir();
-  else if (temp <= cfg.tempCerrar && venteo != V_CERRADO && venteo != V_CERRANDO)
-    venteoCerrar();
+  else if (temp >= cfg.tempAbrir && venteo != V_ABIERTO && venteo != V_ABRIENDO) {
+    venteoAbrir();  registrar("automatico", "abre el venteo (" + String(temp, 1) + " C)");
+  }
+  else if (temp <= cfg.tempCerrar && venteo != V_CERRADO && venteo != V_CERRANDO) {
+    venteoCerrar(); registrar("automatico", "cierra el venteo (" + String(temp, 1) + " C)");
+  }
 
   // Riego (PROVISORIO: usa humedad del aire hasta tener sensor de suelo)
   bool pausaCumplida = !riegoAlgunaVez ||
       (millis() - riegoFinUltimo >= (unsigned long)cfg.riegoPausaMin * 60000UL);
-  if (!riegoOn && hum <= cfg.humRiegoOn && pausaCumplida) riegoSet(true,  "auto");
-  else if (riegoOn && hum >= cfg.humRiegoOff)             riegoSet(false, "auto");
+  if (!riegoOn && hum <= cfg.humRiegoOn && pausaCumplida) { riegoSet(true,  "auto"); registrar("automatico", "empieza a regar (" + String(hum, 0) + " %)"); }
+  else if (riegoOn && hum >= cfg.humRiegoOff)             { riegoSet(false, "auto"); registrar("automatico", "termina de regar (" + String(hum, 0) + " %)"); }
 }
 
 // -------------------------------------------------------------
 //  Ordenes que llegan por MQTT  (topics vivero/nodo1/cmd/...)
 // -------------------------------------------------------------
-bool aplicarConfig(const String& clave, float v) {
+bool aplicarConfig(const String& clave, float v, const String& quien) {
+  if (!esAdmin(quien)) {
+    registrar(quien, "rechazado: ajuste " + clave + " (no es administrador)");
+    alarma("config: " + quienTxt(quien) + " no es administrador");
+    return false;
+  }
   Config n = cfg;                        // probamos sobre una copia
   if      (clave == "temp_abrir")      n.tempAbrir = v;
   else if (clave == "temp_cerrar")     n.tempCerrar = v;
@@ -523,22 +724,28 @@ bool aplicarConfig(const String& clave, float v) {
             n.riegoMaxMin >= 1 && n.riegoMaxMin <= 120 &&
             n.riegoPausaMin <= 1440 &&
             n.climaCierra <= 1;
-  if (!ok) { alarma("config: valor rechazado para " + clave); return false; }
+  if (!ok) { alarma("config: valor rechazado para " + clave); registrar(quien, "rechazado: " + clave + " = " + String(v, 1)); return false; }
 
   cfg = n;
   guardarConfig();
   publicarConfig();
   if (clave == "clima_cierra") { cierreAvisado = false; controlAuto(); hayCambios = true; }
   Serial.printf("[CONFIG] %s = %.1f\n", clave.c_str(), v);
+  registrar(quien, "ajuste " + clave + " = " + String(v, 1));
   return true;
 }
 
 void alRecibir(char* topic, byte* payload, unsigned int largo) {
   String tp(topic);
-  String msg;
-  for (unsigned int i = 0; i < largo; i++) msg += (char)payload[i];
-  msg.trim(); msg.toLowerCase();
-  Serial.printf("[MQTT] <- %s : %s\n", topic, msg.c_str());
+  String crudo;
+  for (unsigned int i = 0; i < largo; i++) crudo += (char)payload[i];
+  crudo.trim();
+  // Ordenes firmadas: "abrir;Juan" -> valor "abrir", quien "Juan" (sin ";" = sin usuario)
+  int sep = crudo.indexOf(';');
+  String msg   = sep >= 0 ? crudo.substring(0, sep) : crudo;
+  String quien = sep >= 0 ? crudo.substring(sep + 1) : "";
+  msg.trim(); msg.toLowerCase(); quien.trim();
+  Serial.printf("[MQTT] <- %s : %s\n", topic, crudo.c_str());
 
   if (tp == "vivero/clima/cierre") {        // del robot de alertas del SMN
     cierreHasta = (uint32_t)msg.toInt();
@@ -557,22 +764,29 @@ void alRecibir(char* topic, byte* payload, unsigned int largo) {
       modoAuto = (msg == "auto");
       guardarConfig();
       hayCambios = true;
+      registrar(quien, modoAuto ? "pasa a automatico" : "pasa a manual");
       if (modoAuto) controlAuto();
     }
   }
   else if (cmd == "venteo") {
-    if (msg == "parar") { venteoParar(); hayCambios = true; }   // PARAR siempre vale
-    else if (modoAuto) alarma("venteo: orden ignorada, esta en automatico");
-    else if (msg == "abrir")  venteoAbrir();
-    else if (msg == "cerrar") venteoCerrar();
+    if (msg == "parar") { venteoParar(); hayCambios = true; registrar(quien, "para el venteo"); }   // PARAR siempre vale
+    else if (modoAuto) { alarma("venteo: orden ignorada, esta en automatico"); registrar(quien, "pide " + msg + " venteo (ignorado: automatico)"); }
+    else if (msg == "abrir")  { venteoAbrir();  registrar(quien, "abre el venteo"); }
+    else if (msg == "cerrar") { venteoCerrar(); registrar(quien, "cierra el venteo"); }
   }
   else if (cmd == "riego") {
-    if (msg == "off") riegoSet(false, "orden");              // APAGAR siempre vale
-    else if (modoAuto) alarma("riego: orden ignorada, esta en automatico");
-    else if (msg == "on") riegoSet(true, "orden manual");
+    if (msg == "off") { if (riegoOn) registrar(quien, "corta el riego"); riegoSet(false, "orden"); }   // APAGAR siempre vale
+    else if (modoAuto) { alarma("riego: orden ignorada, esta en automatico"); registrar(quien, "pide regar (ignorado: automatico)"); }
+    else if (msg == "on") { riegoSet(true, "orden manual"); registrar(quien, "riega"); }
   }
   else if (cmd.startsWith("config/")) {
-    aplicarConfig(cmd.substring(7), msg.toFloat());
+    aplicarConfig(cmd.substring(7), msg.toFloat(), quien);
+  }
+  else if (cmd.startsWith("usuario/")) {
+    ordenUsuario(cmd.substring(8), crudo);
+  }
+  else if (cmd == "registro") {           // la app pide el registro de cambios
+    publicarRegistro();
   }
   else if (cmd == "estado") {             // la app pide el estado al instante
     publicarEstado();
@@ -629,6 +843,7 @@ void mqttTick() {
     mqtt.subscribe("vivero/clima/cierre", 1);   // alertas del SMN (lo publica el robot)
     publicarConfig();
     publicarEstado();
+    publicarUsuarios();
   } else {
     // -2 = no conecta (red/TLS/certificado), 4 = usuario o clave mal, 5 = no autorizado
     Serial.printf("fallo, codigo %d. Reintento en %lus\n",
@@ -757,20 +972,21 @@ void cambiarModo(const char* origen) {
   guardarConfig();
   hayCambios = true;
   Serial.printf("[MODO] %s (%s)\n", modoAuto ? "automatico" : "manual", origen);
+  registrar("panel", modoAuto ? "pasa a automatico" : "pasa a manual");
   if (modoAuto) controlAuto();
 }
 
 void pulsoRiego() {
   if (modoAuto) { alarma("pulsador RIEGO ignorado: esta en automatico"); return; }
   riegoSet(!riegoOn, "pulsador");
+  registrar("panel", riegoOn ? "riega" : "corta el riego");
 }
 
 void pulsoVenteo() {
   if (modoAuto) { alarma("pulsador VENTEO ignorado: esta en automatico"); return; }
-  if (motorMoviendo())           { venteoParar(); Serial.println("[VENTEO] parado con pulsador"); }
-  else if (venteo == V_ABIERTO)  venteoCerrar();
-  else if (venteo == V_CERRADO)  venteoAbrir();
-  else                           venteoCerrar();   // desconocido (parado a mitad): lo mas seguro es cerrar
+  if (motorMoviendo())           { venteoParar(); Serial.println("[VENTEO] parado con pulsador"); registrar("panel", "para el venteo"); }
+  else if (venteo == V_CERRADO)  { venteoAbrir();  registrar("panel", "abre el venteo"); }
+  else                           { venteoCerrar(); registrar("panel", "cierra el venteo"); }   // abierto o a mitad: cerrar es lo mas seguro
 }
 
 void botonesSetup() {
@@ -831,6 +1047,8 @@ void setup() {
 #endif
   cargarConfig();
   histCargar();
+  usuariosCargar();
+  registroIniciar();
   Serial.printf("[CONFIG] abrir %.1f / cerrar %.1f °C, riego %.0f-%.0f %%, recorrido %u s, modo %s\n",
                 cfg.tempAbrir, cfg.tempCerrar, cfg.humRiegoOn, cfg.humRiegoOff,
                 cfg.recorridoS, modoAuto ? "auto" : "manual");
@@ -880,6 +1098,10 @@ void loop() {
   riegoTick();
   botonesTick();
   histTick();
+
+  // Se anota el encendido cuando ya hay hora de internet (o al minuto, sin hora)
+  static bool encendidoAnotado = false;
+  if (!encendidoAnotado && (ahoraEpoch() || ahora > 60000UL)) { encendidoAnotado = true; registrar("equipo", "se encendio"); }
 
   wifiTick();
 #if !MODO_WOKWI

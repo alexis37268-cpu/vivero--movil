@@ -23,7 +23,7 @@
   @media (max-width:380px){.marca img{height:64px}header h1{font-size:15px}.pill{font-size:12px;padding:4px 8px}}
   header h1{color:var(--sobre-bg)}
   header h1 b{color:var(--sol)}
-  #actualizado,#c-detalle{color:var(--sobre-bg-suave)}
+  #actualizado,#c-detalle,#reg-nota{color:var(--sobre-bg-suave)}
   .pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px;border-radius:999px;background:var(--line);color:var(--muted);white-space:nowrap}
   .pill i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
   .pill.ok{background:var(--verde-claro);color:var(--verde)}
@@ -115,6 +115,20 @@
   .permisos{border:1px dashed var(--sol);background:var(--ambar-claro);color:var(--ink)}
   .permisos p{margin:0 0 10px;font-size:14px}
   .ok-txt{color:var(--verde);font-weight:600} .mal-txt{color:var(--rojo);font-weight:600}
+  .quien{font-size:12px;color:var(--sobre-bg-suave);display:flex;gap:8px;align-items:center}
+  .quien button{border:0;background:rgba(255,255,255,.16);color:var(--sobre-bg);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px}
+  .ingreso select,.campo-sel{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--campo);color:var(--ink);font:inherit}
+  .pinin{letter-spacing:6px;font-size:22px;text-align:center}
+  .usu{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+  .usu:first-child{border-top:0}
+  .usu small{color:var(--muted)}
+  .usu .acc{display:flex;gap:6px}
+  .reg{padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+  .reg:first-child{border-top:0}
+  .reg time{color:var(--muted);font-size:12px;margin-right:6px}
+  .reg b{font-weight:600}
+  .reg .q-auto{color:var(--azul)} .reg .q-panel{color:var(--ambar)} .reg .q-rech{color:var(--rojo)}
+  .solo-admin{color:var(--muted);font-size:13px}
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
 </style>
@@ -125,12 +139,35 @@
     <div class="titulo">
       <h1>Vivero <b>Sol Puntano</b></h1>
       <span id="conexion" class="pill"><i></i><span>Sin conectar</span></span>
+      <span class="quien" id="quien" hidden><span id="quien-txt"></span><button id="salir">Salir</button></span>
     </div>
   </header>
+
+  <!-- ============ INGRESO (si el equipo tiene usuarios) ============ -->
+  <section id="v-ingreso" class="vista ingreso">
+    <form class="card" id="f-ingreso" autocomplete="off">
+      <h2 id="ing-tit">Ingresar</h2>
+      <label for="ing-usuario">Usuario</label>
+      <select id="ing-usuario"></select>
+      <label for="ing-pin">PIN</label>
+      <input id="ing-pin" class="pinin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      <div class="botones dos" style="margin-top:14px"><span></span><button type="submit" class="btn prim">Entrar</button></div>
+      <p class="nota" id="ing-nota">Pedile el PIN al administrador.</p>
+    </form>
+  </section>
 
   <!-- ============ INICIO ============ -->
   <section id="v-inicio" class="vista on">
     <div class="clima" id="clima" hidden role="status" aria-live="polite"></div>
+    <form class="card permisos" id="f-primer" hidden autocomplete="off">
+      <h2>Crear el administrador</h2>
+      <p>Este equipo todavía no tiene usuarios. Creá el primero: va a ser el <b>administrador</b> y después da de alta al resto.</p>
+      <div class="doble">
+        <div><label for="pr-nombre">Nombre</label><input id="pr-nombre" maxlength="16" autocapitalize="words"></div>
+        <div><label for="pr-pin">PIN (4 a 6 números)</label><input id="pr-pin" class="pinin" type="password" inputmode="numeric" maxlength="6"></div>
+      </div>
+      <div class="botones dos" style="margin-top:12px"><button type="button" class="btn" id="pr-despues">Más tarde</button><button type="submit" class="btn prim">Crear</button></div>
+    </form>
     <div class="equipos" id="equipos" role="tablist" aria-label="Equipo"></div>
     <div class="grande">
       <div class="medida"><small>Temperatura</small><div class="v" id="temp">--<span>°C</span></div></div>
@@ -244,10 +281,35 @@
         <p class="nota">Alertas oficiales del SMN para la zona del vivero. Funciona solo en automático; en manual solo avisa.</p>
       </div>
       <p class="nota" id="ajustes-nota">Los valores quedan guardados en el equipo, aunque se corte la luz.</p>
+      <p class="solo-admin" id="ajustes-admin" hidden>Solo un administrador puede cambiar estos valores.</p>
       <div class="botones dos">
         <button type="button" class="btn" id="ajustes-recargar">Volver a leer</button>
         <button type="submit" class="btn prim">Guardar</button>
       </div>
+    </form>
+
+    <div class="card" id="c-usuarios" hidden>
+      <h2>Usuarios</h2>
+      <div id="usu-lista"></div>
+      <form id="f-usuario" autocomplete="off">
+        <h2 style="margin-top:16px">Agregar usuario</h2>
+        <div class="doble">
+          <div><label for="nu-nombre">Nombre</label><input id="nu-nombre" maxlength="16" autocapitalize="words"></div>
+          <div><label for="nu-rol">Rol</label><select id="nu-rol" class="campo-sel"><option value="operario">Operario</option><option value="admin">Administrador</option></select></div>
+        </div>
+        <label for="nu-pin">PIN (4 a 6 números)</label>
+        <input id="nu-pin" class="pinin" type="password" inputmode="numeric" maxlength="6">
+        <div class="botones dos" style="margin-top:12px"><span></span><button type="submit" class="btn prim">Agregar</button></div>
+      </form>
+      <p class="nota">Operario: modo, venteo y riego. Administrador: además ajustes del equipo y usuarios.</p>
+    </div>
+    <form class="card" id="f-mipin" hidden autocomplete="off">
+      <h2>Mi PIN</h2>
+      <div class="doble">
+        <div><label for="mp-nuevo">PIN nuevo</label><input id="mp-nuevo" class="pinin" type="password" inputmode="numeric" maxlength="6"></div>
+        <div><label for="mp-otra">Repetir</label><input id="mp-otra" class="pinin" type="password" inputmode="numeric" maxlength="6"></div>
+      </div>
+      <div class="botones dos" style="margin-top:12px"><span></span><button type="submit" class="btn prim">Cambiar PIN</button></div>
     </form>
 
     <form class="card" id="f-clima" hidden>
@@ -268,11 +330,24 @@
 
   <!-- ============ ALARMAS ============ -->
   <section id="v-alarmas" class="vista">
-    <div class="card">
-      <h2>Últimas alarmas</h2>
-      <div id="alarmas"><p class="nota">Sin alarmas.</p></div>
+    <div class="seg" id="sol-alarmas" style="margin-bottom:12px">
+      <button data-sol="alarmas" class="on">Alarmas</button><button data-sol="cambios">Cambios</button>
     </div>
-    <button class="btn" id="alarmas-borrar" style="width:100%">Borrar lista</button>
+    <div id="p-alarmas">
+      <div class="card">
+        <h2>Últimas alarmas</h2>
+        <div id="alarmas"><p class="nota">Sin alarmas.</p></div>
+      </div>
+      <button class="btn" id="alarmas-borrar" style="width:100%">Borrar lista</button>
+    </div>
+    <div id="p-cambios" hidden>
+      <div class="card">
+        <div class="graf-cab"><h2>Quién hizo qué</h2><button class="btn chico" id="reg-act">Actualizar</button></div>
+        <div id="registro"><p class="nota">Cargando…</p></div>
+      </div>
+      <button class="btn prim" id="reg-exportar" style="width:100%">Exportar a Excel</button>
+      <p class="nota" id="reg-nota">El equipo guarda las últimas ~300 acciones, aunque se corte la luz.</p>
+    </div>
   </section>
 
   <!-- ============ CONEXIÓN ============ -->
@@ -322,7 +397,7 @@
   let toastT;
   function avisar(txt){ const t = $('#toast'); t.textContent = txt; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
   const hora = (d) => d.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-  const fecha = (d) => d.toLocaleString('es-AR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+  const fecha = (d) => d.toLocaleString('es-AR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false});
 
   // ---------- Configuración de conexión (guardada en el celular) ----------
   const DEF = { host: 'p64138d1.ala.us-east-1.emqxsl.com', port: 8084, nodo: 'nodo1', user: 'vivero-app', pass: '' };
@@ -336,10 +411,12 @@
 
   // ---------- Navegación ----------
   $$('nav button').forEach(b => b.addEventListener('click', () => {
+    if (bloqueadoIngreso && b.dataset.vista !== 'conexion') { mostrarVista('ingreso'); avisar('Primero ingresá con tu usuario'); return; }
     $$('nav button').forEach(x => x.classList.toggle('on', x === b));
     $$('.vista').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.vista));
     if (b.dataset.vista === 'alarmas') { noLeidas = 0; pintarBadge(); }
-    if (b.dataset.vista === 'ajustes') { cargarAjustes(); cargarClimaCfg(); }
+    if (b.dataset.vista === 'ajustes') { cargarAjustes(); cargarClimaCfg(); pintarUsuarios(); }
+    if (b.dataset.vista === 'alarmas' && solapa === 'cambios') pedirRegistro();
     if (b.dataset.vista === 'inicio') setTimeout(dibujar, 0);   // al estar oculto no tenía ancho
     if (b.dataset.vista === 'clima') { pintarPermisos(); actualizarAfuera(false); }
     window.scrollTo(0, 0);
@@ -396,7 +473,14 @@
 
   function ordenar(sub, msg){
     if (!cliente || !cliente.connected) { avisar('No hay conexión con el broker'); return false; }
-    cliente.publish(base() + 'cmd/' + sub, String(msg), { qos: 1, retain: false });
+    let m = String(msg);
+    // Equipos con usuarios: la orden va firmada "valor;Nombre" (los viejos reciben la orden sola)
+    if (cfgEquipo && cfgEquipo.usuarios && sub !== 'estado' && sub !== 'historial' && sub !== 'registro') {
+      const s = sesionActual();
+      m += ';' + (s ? s.nombre : '');
+      if (s) { s.ultimo = Date.now(); guardar('dm.sesiones', sesiones); }
+    }
+    cliente.publish(base() + 'cmd/' + sub, m, { qos: 1, retain: false });
     return true;
   }
 
@@ -404,21 +488,24 @@
   const nodos = {};
   const nombreNodo = (id) => (nodos[id] && nodos[id].nombre) || (id === 'nodo1' ? 'Vivero' : id);
   function suscribirNodo(){
-    cliente.subscribe([base() + 'estado', base() + 'config', base() + 'alarma', base() + 'historial'], { qos: 1 });
+    cliente.subscribe([base() + 'estado', base() + 'config', base() + 'alarma', base() + 'historial',
+                       base() + 'usuarios', base() + 'registro', base() + 'registro/nuevo'], { qos: 1 });
     ordenar('estado', '1');
     pedirHistorial();
   }
   function cambiarNodo(id){
     if (id === cfg.nodo) return;
-    if (cliente && cliente.connected) cliente.unsubscribe([base() + 'estado', base() + 'config', base() + 'alarma', base() + 'historial']);
+    if (cliente && cliente.connected) cliente.unsubscribe([base() + 'estado', base() + 'config', base() + 'alarma', base() + 'historial',
+                                                             base() + 'usuarios', base() + 'registro', base() + 'registro/nuevo']);
     cfg.nodo = id; guardar('dm.conexion', cfg); $('#c-nodo').value = id;
     estado = null; cfgEquipo = null; ultimoEstado = 0;
+    usuariosEquipo = null; registro = []; regPartes = null;
     online = nodos[id] ? nodos[id].online : null;
     $('#actualizado').textContent = 'Esperando datos de ' + nombreNodo(id) + '…';
     ['temp','hum'].forEach(k => $('#' + k).firstChild.nodeValue = '--');
     ['venteo','riego','sensor'].forEach(k => poner(k, '—'));
     if (cliente && cliente.connected) suscribirNodo();
-    pintarEquipos(); pintar(); dibujar();
+    pintarEquipos(); pintar(); dibujar(); revisarAcceso(); pintarRegistro();
   }
   function pintarEquipos(){
     const c = $('#equipos');
@@ -460,9 +547,15 @@
     } else if (sub === 'online') {
       online = (txt === 'online'); pintar();
     } else if (sub === 'config') {
-      try { cfgEquipo = JSON.parse(txt); if ($('#v-ajustes').classList.contains('on') && !editando) cargarAjustes(); dibujar(); } catch (e) {}
+      try { cfgEquipo = JSON.parse(txt); if ($('#v-ajustes').classList.contains('on') && !editando) cargarAjustes(); dibujar(); revisarAcceso(); } catch (e) {}
     } else if (sub === 'historial') {
       try { parteHistorial(JSON.parse(txt)); } catch (e) {}
+    } else if (sub === 'usuarios') {
+      try { usuariosEquipo = JSON.parse(txt); revisarAcceso(); pintarUsuarios(); } catch (e) {}
+    } else if (sub === 'registro') {
+      try { parteRegistro(JSON.parse(txt)); } catch (e) {}
+    } else if (sub === 'registro/nuevo') {
+      registro.unshift(lineaRegistro(txt)); registro = registro.slice(0, 400); pintarRegistro();
     } else if (sub === 'alarma') {
       alarmas.unshift({ t: Date.now(), m: txt });
       alarmas = alarmas.slice(0, 50);
@@ -718,6 +811,7 @@
   setInterval(pintarClima, 60e3);                  // que desaparezca sola cuando vence
 
   $('#clima_cierra').addEventListener('change', (e) => {
+    if (!puedeAdmin()) { e.target.checked = !e.target.checked; avisar('Solo un administrador'); return; }
     if (ordenar('config/clima_cierra', e.target.checked ? 1 : 0))
       avisar(e.target.checked ? 'Con alerta se va a cerrar el venteo' : 'Las alertas solo van a avisar');
   });
@@ -849,6 +943,228 @@
     pintarPermisos();
   }
 
+
+  // ---------- Usuarios (nombre + PIN) y registro de cambios ----------
+  // La lista vive en el equipo (vivero/nodoN/usuarios). Del PIN solo viaja un resumen (hash).
+  let usuariosEquipo = null, registro = [], regPartes = null, solapa = 'alarmas';
+  let sesiones = leer('dm.sesiones', {});         // por equipo: { nombre, rol, ultimo }
+  let bloqueadoIngreso = false, primerDespues = false;
+  const SESION_MS = 12 * 3600e3;                   // 12 h sin usar = vuelve a pedir PIN
+
+  // SHA-256 chico (sin depender de crypto.subtle). Devuelve los primeros 16 caracteres hex.
+  function sha256hex(txt){
+    const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    const b = Array.from(new TextEncoder().encode(txt)), l = b.length * 8;
+    b.push(0x80); while (b.length % 64 !== 56) b.push(0);
+    for (let i = 7; i >= 0; i--) b.push(i > 3 ? 0 : (l >>> (i * 8)) & 255);
+    let h = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    const r = (x, n) => (x >>> n) | (x << (32 - n));
+    for (let o = 0; o < b.length; o += 64) {
+      const w = [];
+      for (let i = 0; i < 16; i++) w[i] = (b[o+4*i] << 24) | (b[o+4*i+1] << 16) | (b[o+4*i+2] << 8) | b[o+4*i+3];
+      for (let i = 16; i < 64; i++) {
+        const s0 = r(w[i-15], 7) ^ r(w[i-15], 18) ^ (w[i-15] >>> 3), s1 = r(w[i-2], 17) ^ r(w[i-2], 19) ^ (w[i-2] >>> 10);
+        w[i] = (w[i-16] + s0 + w[i-7] + s1) | 0;
+      }
+      let [a, bb, c, d, e, f, g, hh] = h;
+      for (let i = 0; i < 64; i++) {
+        const t1 = (hh + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+        const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & bb) ^ (a & c) ^ (bb & c))) | 0;
+        hh = g; g = f; f = e; e = (d + t1) | 0; d = c; c = bb; bb = a; a = (t1 + t2) | 0;
+      }
+      h = h.map((v, i) => (v + [a, bb, c, d, e, f, g, hh][i]) | 0);
+    }
+    return h.map(v => (v >>> 0).toString(16).padStart(8, '0')).join('').slice(0, 16);
+  }
+  const hashPin = (nombre, pin) => sha256hex(cfg.nodo + ':' + nombre.trim().toLowerCase() + ':' + pin);
+  const nombreValido = (n) => /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ._-]{1,16}$/.test(n.trim());
+  const pinValido = (p) => /^\d{4,6}$/.test(p);
+
+  const conUsuarios = () => !!(cfgEquipo && cfgEquipo.usuarios && usuariosEquipo && usuariosEquipo.length);
+  function sesionActual(){
+    const s = sesiones[cfg.nodo];
+    if (!s) return null;
+    if (Date.now() - s.ultimo > SESION_MS) { delete sesiones[cfg.nodo]; guardar('dm.sesiones', sesiones); return null; }
+    if (usuariosEquipo && usuariosEquipo.length && !usuariosEquipo.some(u => u.n.toLowerCase() === s.nombre.toLowerCase())) { delete sesiones[cfg.nodo]; guardar('dm.sesiones', sesiones); return null; }   // lo dieron de baja
+    return s;
+  }
+  function puedeAdmin(){
+    if (!conUsuarios()) return true;                // sin usuarios todo vale (como antes)
+    const s = sesionActual(); if (!s) return false;
+    const u = usuariosEquipo.find(x => x.n.toLowerCase() === s.nombre.toLowerCase());
+    return !!(u && u.r === 'admin');
+  }
+
+  function mostrarVista(v){
+    $$('.vista').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
+    $$('nav button').forEach(x => x.classList.toggle('on', x.dataset.vista === v));
+  }
+  function revisarAcceso(){
+    const s = sesionActual(), hay = conUsuarios();
+    // Banner para crear el primer administrador
+    $('#f-primer').hidden = !(cfgEquipo && cfgEquipo.usuarios && usuariosEquipo && !usuariosEquipo.length && !primerDespues);
+    // Pantalla de ingreso
+    const pedir = hay && !s;
+    if (pedir && !bloqueadoIngreso) {
+      const sel = $('#ing-usuario'); sel.innerHTML = '';
+      usuariosEquipo.forEach(u => { const o = document.createElement('option'); o.value = u.n; o.textContent = u.n + (u.r === 'admin' ? ' (administrador)' : ''); sel.append(o); });
+      const ultimo = leer('dm.ultimoUsuario', ''); if (ultimo) sel.value = ultimo;
+      $('#ing-tit').textContent = 'Ingresar a ' + nombreNodo(cfg.nodo);
+      $('#ing-pin').value = '';
+      if (!$('#v-conexion').classList.contains('on')) mostrarVista('ingreso');
+    }
+    if (!pedir && bloqueadoIngreso && $('#v-ingreso').classList.contains('on')) mostrarVista('inicio');
+    bloqueadoIngreso = pedir;
+    // Encabezado
+    $('#quien').hidden = !(hay && s);
+    if (hay && s) {
+      const u = usuariosEquipo.find(x => x.n.toLowerCase() === s.nombre.toLowerCase());
+      $('#quien-txt').textContent = '👤 ' + s.nombre + (u && u.r === 'admin' ? ' · admin' : ' · operario');
+    }
+    if ($('#v-ajustes').classList.contains('on')) { cargarAjustes(); pintarUsuarios(); }
+  }
+
+  $('#f-ingreso').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const nombre = $('#ing-usuario').value, pin = $('#ing-pin').value;
+    const u = (usuariosEquipo || []).find(x => x.n === nombre);
+    if (!u || hashPin(nombre, pin) !== u.h) { $('#ing-nota').textContent = 'PIN incorrecto.'; $('#ing-nota').style.color = 'var(--rojo)'; $('#ing-pin').value = ''; return; }
+    sesiones[cfg.nodo] = { nombre: u.n, ultimo: Date.now() }; guardar('dm.sesiones', sesiones);
+    guardar('dm.ultimoUsuario', u.n);
+    $('#ing-nota').textContent = 'Pedile el PIN al administrador.'; $('#ing-nota').style.color = '';
+    bloqueadoIngreso = false; mostrarVista('inicio'); revisarAcceso();
+    avisar('Hola, ' + u.n);
+  });
+  $('#salir').addEventListener('click', () => { delete sesiones[cfg.nodo]; guardar('dm.sesiones', sesiones); revisarAcceso(); });
+
+  $('#f-primer').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const n = $('#pr-nombre').value.trim(), p = $('#pr-pin').value;
+    if (!nombreValido(n)) { avisar('Nombre: hasta 16 letras o números'); return; }
+    if (!pinValido(p)) { avisar('El PIN va de 4 a 6 números'); return; }
+    sesiones[cfg.nodo] = { nombre: n, ultimo: Date.now() }; guardar('dm.sesiones', sesiones);   // queda adentro
+    if (ordenar('usuario/alta', n + ';admin;' + hashPin(n, p))) avisar('Creando administrador…');
+  });
+  $('#pr-despues').addEventListener('click', () => { primerDespues = true; revisarAcceso(); });
+
+  function pintarUsuarios(){
+    const admin = puedeAdmin(), hay = conUsuarios();
+    $('#c-usuarios').hidden = !(cfgEquipo && cfgEquipo.usuarios && hay && admin);
+    $('#f-mipin').hidden = !(hay && sesionActual());
+    const c = $('#usu-lista'); c.innerHTML = '';
+    (usuariosEquipo || []).forEach(u => {
+      const d = document.createElement('div'); d.className = 'usu';
+      const t = document.createElement('div'); t.textContent = u.n + ' ';
+      const sm = document.createElement('small'); sm.textContent = u.r === 'admin' ? 'Administrador' : 'Operario'; t.append(sm);
+      const acc = document.createElement('div'); acc.className = 'acc';
+      const pin = document.createElement('button'); pin.className = 'btn chico'; pin.textContent = 'PIN';
+      pin.addEventListener('click', () => {
+        const p = prompt('PIN nuevo para ' + u.n + ' (4 a 6 números)');
+        if (p === null) return;
+        if (!pinValido(p)) { avisar('El PIN va de 4 a 6 números'); return; }
+        if (ordenar('usuario/pin', u.n + ';' + hashPin(u.n, p))) avisar('PIN de ' + u.n + ' cambiado');
+      });
+      const del = document.createElement('button'); del.className = 'btn chico'; del.textContent = 'Borrar';
+      del.addEventListener('click', () => {
+        if (!confirm('¿Dar de baja a ' + u.n + '?')) return;
+        if (ordenar('usuario/baja', u.n)) avisar(u.n + ' dado de baja');
+      });
+      acc.append(pin, del); d.append(t, acc); c.append(d);
+    });
+  }
+  $('#f-usuario').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const n = $('#nu-nombre').value.trim(), r = $('#nu-rol').value, p = $('#nu-pin').value;
+    if (!nombreValido(n)) { avisar('Nombre: hasta 16 letras o números'); return; }
+    if (!pinValido(p)) { avisar('El PIN va de 4 a 6 números'); return; }
+    if ((usuariosEquipo || []).some(u => u.n.toLowerCase() === n.toLowerCase()) && !confirm(n + ' ya existe. ¿Cambiar su rol y PIN?')) return;
+    if (ordenar('usuario/alta', n + ';' + r + ';' + hashPin(n, p))) { avisar('Usuario ' + n + ' agregado'); $('#nu-nombre').value = ''; $('#nu-pin').value = ''; }
+  });
+  $('#f-mipin').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const s = sesionActual(), a = $('#mp-nuevo').value, b = $('#mp-otra').value;
+    if (!s) return;
+    if (!pinValido(a)) { avisar('El PIN va de 4 a 6 números'); return; }
+    if (a !== b) { avisar('Los dos PIN no coinciden'); return; }
+    if (ordenar('usuario/pin', s.nombre + ';' + hashPin(s.nombre, a))) { avisar('PIN cambiado'); $('#mp-nuevo').value = ''; $('#mp-otra').value = ''; }
+  });
+
+  // Registro de cambios: "epoch|quien|que"
+  const AJUSTE_TXT = { temp_abrir: 'abre arriba de (°C)', temp_cerrar: 'cierra abajo de (°C)', motor_max_s: 'recorrido del actuador (s)',
+    hum_riego_on: 'riega debajo de (%)', hum_riego_off: 'corta arriba de (%)', riego_max_min: 'riego máximo (min)',
+    riego_pausa_min: 'pausa entre riegos (min)', clima_cierra: 'cerrar con alerta (1 = sí)' };
+  function lineaRegistro(l){
+    const p = String(l).split('|');
+    let a = p.slice(2).join('|').replace(/\b(temp_abrir|temp_cerrar|motor_max_s|hum_riego_on|hum_riego_off|riego_max_min|riego_pausa_min|clima_cierra)\b/g, k => AJUSTE_TXT[k]);
+    a = a.replace(/(\d+)\.0\b/g, '$1').replace(/ C\)/g, ' °C)');
+    const q = p[1] === 'automatico' ? 'automático' : (p[1] || '');
+    return { t: (+p[0] || 0) * 1000, q, a };
+  }
+  function pedirRegistro(){
+    if (!cliente || !cliente.connected) return;
+    if (!(cfgEquipo && cfgEquipo.usuarios)) { pintarRegistro(); return; }
+    regPartes = { de: null, rec: {}, l: [] };
+    cliente.publish(base() + 'cmd/registro', '1', { qos: 1, retain: false });
+    setTimeout(() => { if (regPartes) armarRegistro(); }, 6000);
+  }
+  function parteRegistro(m){
+    if (!regPartes) regPartes = { de: null, rec: {}, l: [] };
+    regPartes.de = m.de; regPartes.rec[m.p] = m.l || [];
+    if (Object.keys(regPartes.rec).length >= m.de) armarRegistro();
+  }
+  function armarRegistro(){
+    const todo = [];
+    Object.keys(regPartes.rec).sort((a, b) => a - b).forEach(k => regPartes.rec[k].forEach(l => todo.push(lineaRegistro(l))));
+    registro = todo.reverse();                         // lo más nuevo arriba
+    regPartes = null; pintarRegistro();
+  }
+  function pintarRegistro(){
+    const c = $('#registro');
+    if (!(cfgEquipo && cfgEquipo.usuarios)) { c.innerHTML = '<p class="nota">Este equipo todavía no guarda el registro de cambios (hay que actualizarle el programa).</p>'; return; }
+    if (!registro.length) { c.innerHTML = '<p class="nota">Sin cambios registrados.</p>'; return; }
+    c.innerHTML = '';
+    registro.slice(0, 300).forEach(r => {
+      const d = document.createElement('div'); d.className = 'reg';
+      const t = document.createElement('time'); t.textContent = r.t ? fecha(new Date(r.t)) : 'sin hora';
+      const q = document.createElement('b'); q.textContent = r.q;
+      q.className = r.q === 'automático' ? 'q-auto' : r.q === 'panel' ? 'q-panel' : '';
+      const a = document.createElement('span'); a.textContent = ' ' + r.a;
+      if (/^rechazado/.test(r.a)) a.className = 'q-rech';
+      d.append(t, q, a); c.append(d);
+    });
+  }
+  $('#reg-act').addEventListener('click', pedirRegistro);
+  $$('#sol-alarmas button').forEach(b => b.addEventListener('click', () => {
+    solapa = b.dataset.sol;
+    $$('#sol-alarmas button').forEach(x => x.classList.toggle('on', x === b));
+    $('#p-alarmas').hidden = solapa !== 'alarmas'; $('#p-cambios').hidden = solapa !== 'cambios';
+    if (solapa === 'cambios') pedirRegistro();
+  }));
+
+  // Exportar: CSV con ";" (el Excel en castellano lo abre directo) y BOM para los acentos
+  async function exportarRegistro(){
+    if (!registro.length) { avisar('No hay cambios para exportar'); return; }
+    const filas = [['Fecha', 'Hora', 'Quién', 'Qué']].concat(registro.slice().reverse().map(r => {
+      const d = r.t ? new Date(r.t) : null;
+      return [d ? d.toLocaleDateString('es-AR') : 'sin hora', d ? d.toLocaleTimeString('es-AR', { hour12: false }) : '', r.q, r.a];
+    }));
+    const csv = '﻿' + filas.map(f => f.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+    const nombre = 'registro-' + nombreNodo(cfg.nodo).replace(/\W+/g, '-') + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    const P = window.Capacitor && window.Capacitor.Plugins;
+    if (NATIVO && P && P.Filesystem && P.Share) {
+      try {
+        const w = await P.Filesystem.writeFile({ path: nombre, data: csv, directory: 'CACHE', encoding: 'utf8' });
+        await P.Share.share({ title: 'Registro de cambios', url: w.uri, dialogTitle: 'Enviar o guardar el registro' });
+      } catch (e) { if (!/cancel/i.test(String(e && e.message || e))) avisar('No se pudo exportar: ' + (e && e.message || e)); }
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = nombre; document.body.append(a); a.click(); a.remove();
+  }
+  $('#reg-exportar').addEventListener('click', exportarRegistro);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) revisarAcceso(); });
+
   // ---------- Ajustes ----------
   // Mismos límites que valida el ESP32 (si no, lo rechaza y manda alarma)
   const CAMPOS = ['temp_abrir','temp_cerrar','motor_max_s','hum_riego_on','hum_riego_off','riego_max_min','riego_pausa_min'];
@@ -861,6 +1177,9 @@
     CAMPOS.forEach(k => { $('#' + k).value = cfgEquipo[k]; });
     $('#lbl-motor').textContent = cfgEquipo.recorrido ? 'Tiempo de recorrido del actuador (s)' : 'Tiempo máximo del motor (s)';
     $('#clima-ajuste').hidden = cfgEquipo.clima_cierra === undefined;      // equipos viejos u hibernáculo
+    const bloqueado = !puedeAdmin();
+    $$('#f-ajustes input, #f-ajustes button').forEach(e => e.disabled = bloqueado);
+    $('#ajustes-admin').hidden = !bloqueado;
     $('#clima_cierra').checked = cfgEquipo.clima_cierra === 1;
     $('#ajustes-nota').textContent = 'Los valores quedan guardados en el equipo, aunque se corte la luz.';
   }
@@ -880,6 +1199,7 @@
 
   $('#f-ajustes').addEventListener('submit', (ev) => {
     ev.preventDefault();
+    if (!puedeAdmin()) { avisar('Solo un administrador puede cambiar los ajustes'); return; }
     if (!cfgEquipo) { avisar('Todavía no llegaron los valores del equipo'); return; }
     const n = {};
     CAMPOS.forEach(k => n[k] = parseFloat($('#' + k).value));

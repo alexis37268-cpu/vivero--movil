@@ -105,6 +105,11 @@
 #define HIST_GRABAR_CADA  6      // se graba en la flash cada 6 puntos = 1 h
 #define HIST_POR_MENSAJE  48     // puntos por mensaje MQTT (se manda en partes)
 
+// ---------- Usuarios y registro de cambios ----------
+#define MAX_USUARIOS      12     // usuarios con nombre y PIN (los da de alta el administrador)
+#define REG_POR_ARCHIVO   150    // el registro usa 2 archivos de 150 lineas = ~300 acciones
+#define REG_POR_MENSAJE   12     // lineas del registro por mensaje MQTT
+
 // ---------- Valores por defecto (se cambian desde MQTT y quedan guardados) ----------
 #define DEF_TEMP_ABRIR      28.0   // °C: abre el venteo
 #define DEF_TEMP_CERRAR     24.0   // °C: cierra el venteo (histeresis = 4 °C)
