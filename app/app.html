@@ -169,7 +169,7 @@
     .grilla{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
     .toast{bottom:24px}
     #v-inicio.on{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);column-gap:16px;align-items:start;
-      grid-template-areas:"aviso aviso" "primer primer" "equipos equipos" "resumen resumen" "medidas medidas" "act act" "graf estado" "graf control"}
+      grid-template-areas:"aviso aviso" "primer primer" "equipos equipos" "medidas medidas" "act act" "graf estado" "graf control"}
     #clima{grid-area:aviso} #f-primer{grid-area:primer} #equipos{grid-area:equipos} #c-resumen{grid-area:resumen}
     #v-inicio .grande{grid-area:medidas;grid-template-columns:repeat(2,minmax(0,1fr))} #actualizado{grid-area:act;margin-bottom:12px}
     #c-graf{grid-area:graf;margin-top:0!important} #c-estado{grid-area:estado;margin-top:0!important} #c-control{grid-area:control}
@@ -246,10 +246,6 @@
       <div class="botones dos" style="margin-top:12px"><button type="button" class="btn" id="pr-despues">Más tarde</button><button type="submit" class="btn prim">Crear</button></div>
     </form>
     <div class="equipos" id="equipos" role="tablist" aria-label="Equipo"></div>
-    <div class="card solo-pc" id="c-resumen">
-      <h2>Todos los equipos</h2>
-      <div class="resumen" id="resumen"></div>
-    </div>
     <div class="grande">
       <div class="medida"><small>Temperatura</small><div class="v" id="temp">--<span>°C</span></div></div>
       <div class="medida"><small>Humedad</small><div class="v" id="hum">--<span>%</span></div></div>
@@ -756,19 +752,12 @@
     c.innerHTML = '';
     const v = document.createElement('button'); v.type = 'button'; v.className = 'volver'; v.textContent = '← Equipos';
     v.addEventListener('click', () => { mostrarVista('equipos'); pintarGrilla(); window.scrollTo(0, 0); });
-    c.append(v);
-    ids.forEach(id => {
-      const b = document.createElement('button');
-      b.className = 'equipo' + (id === cfg.nodo ? ' on' : '');
-      b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', id === cfg.nodo);
-      const dot = document.createElement('i');
-      const on = nodos[id] && nodos[id].online;
-      dot.className = on === true ? 'ok' : on === false ? 'mal' : '';
-      b.append(dot, document.createTextNode(nombreNodo(id)));
-      b.addEventListener('click', () => cambiarNodo(id));
-      c.append(b);
-    });
-    c.hidden = !NATIVO && window.innerWidth >= 900;   // en la PC se vuelve con "Equipos" del menu
+    const b = document.createElement('span'); b.className = 'equipo on';       // solo el equipo elegido (los demas estan en Equipos)
+    const dot = document.createElement('i');
+    const on = nodos[cfg.nodo] && nodos[cfg.nodo].online;
+    dot.className = on === true ? 'ok' : on === false ? 'mal' : '';
+    b.append(dot, document.createTextNode(nombreNodo(cfg.nodo)));
+    c.append(v, b);
     pintarResumen(); pedirGrilla();
   }
 
