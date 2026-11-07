@@ -88,12 +88,18 @@ function leerPronostico(html) {
   return { estacion: (c.Titulo || '').replace(/^.*estación\s*/i, ''), hoyMin: num(c.TempMinHoy), hoyMax: num(c.TempMaxHoy), dias };
 }
 
-// "Sábado 7" -> fecha de ese dia (dentro de los proximos 4 dias)
+// Horas de la REM = hora argentina (UTC-3, sin horario de verano). No se usa la
+// zona horaria del aparato, asi da igual como este configurado el celular.
+const AR = -3 * 3600e3;
+const enAR = (ms) => new Date(ms + AR);                        // leer con getUTC* = hora argentina
+const deAR = (y, m, d, h, mi) => new Date(Date.UTC(y, m, d, h, mi) - AR);
+
+// "Sábado 7" -> mediodia de ese dia, hora argentina (dentro de los proximos 4 dias)
 function fechaDe(titulo, ahora) {
   const n = num(titulo);
   for (let i = 0; i < 5; i++) {
-    const d = new Date(ahora.getTime() + i * 86400e3);
-    if (d.getDate() === n) return d;
+    const d = enAR(ahora.getTime() + i * 86400e3);
+    if (d.getUTCDate() === n) return deAR(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0);
   }
   return null;
 }
@@ -159,7 +165,7 @@ function alertasRem(est, pron, cfg, ahora) {
   if (pron) pron.dias.slice(0, 2).forEach(d => {
     if (d.min == null || d.min > cfg.helada) return;
     const f = fechaDe(d.dia, ahora); if (!f) return;
-    const fin = new Date(f); fin.setHours(10, 0, 0, 0);
+    const fin = new Date(f.getTime() - 2 * 3600e3);          // 10:00 de ese dia: ya paso la helada
     out.push({ id: 'helada-' + f.toISOString().slice(0, 10), evento: 'Helada pronosticada', nivel: d.min <= 0 ? 'naranja' : 'amarillo',
                desde: ahoraS, hasta: Math.floor(fin.getTime() / 1000), cierra: false, fuente: 'REM',
                texto: 'Pronóstico REM (' + pron.estacion + ') para el ' + d.dia + ': mínima ' + d.min + ' °C. Revisá cerrar el venteo y proteger los plantines.' });
@@ -171,7 +177,8 @@ function alertasRem(est, pron, cfg, ahora) {
   }
   if (est && est.rafagaHoy != null && est.rafagaHoy >= cfg.rafaga && est.rafagaHora) {
     const [h, mi] = est.rafagaHora.split(':').map(Number);
-    const cuando = new Date(ahora); cuando.setHours(h, mi, 0, 0);
+    const hoy = enAR(ahora.getTime());
+    const cuando = deAR(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate(), h, mi);
     if (ahora - cuando >= 0 && ahora - cuando <= 90 * 60e3) {          // solo si fue hace poco
       out.push({ id: 'rafaga-' + cuando.toISOString().slice(0, 16), evento: 'Ráfaga fuerte medida', nivel: est.rafagaHoy >= cfg.rafaga + 20 ? 'naranja' : 'amarillo',
                  desde: Math.floor(cuando.getTime() / 1000), hasta: Math.floor(cuando.getTime() / 1000) + 3 * 3600, cierra: true, fuente: 'REM',
