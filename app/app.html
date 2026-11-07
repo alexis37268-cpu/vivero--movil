@@ -125,10 +125,46 @@
   .usu .acc{display:flex;gap:6px}
   .reg{padding:8px 0;border-top:1px solid var(--line);font-size:14px}
   .reg:first-child{border-top:0}
-  .reg time{color:var(--muted);font-size:12px;margin-right:6px}
+  .reg time{color:var(--muted);font-size:12px;margin-right:6px;font-variant-numeric:tabular-nums}
   .reg b{font-weight:600}
   .reg .q-auto{color:var(--azul)} .reg .q-panel{color:var(--ambar)} .reg .q-rech{color:var(--rojo)}
   .solo-admin{color:var(--muted);font-size:13px}
+  .filtros{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+  .filtros label{margin:4px 0 2px}
+  .filtros input,.filtros select{padding:8px 10px}
+  .solo-pc{display:none}
+  .resumen{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+  .eq{border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;background:var(--card);text-align:left;font:inherit;color:var(--ink)}
+  .eq.on{border-color:var(--verde);box-shadow:0 0 0 2px var(--verde-claro)}
+  .eq b{display:flex;align-items:center;gap:6px;font-size:15px}
+  .eq b i{width:8px;height:8px;border-radius:50%;background:#9aa}
+  .eq b i.ok{background:#2fa84f} .eq b i.mal{background:var(--rojo)}
+  .eq .nums{font-size:24px;font-weight:700;margin:4px 0;font-variant-numeric:tabular-nums}
+  .eq .nums span{font-size:15px;color:var(--muted);font-weight:500}
+  .eq small{display:block;color:var(--muted);font-size:13px}
+  .clima-viejo{background:var(--rojo-claro);color:var(--rojo);border-radius:10px;padding:8px 10px;font-size:13px;font-weight:600;margin-bottom:8px}
+  /* ---------- Pantalla de PC (monitor) ---------- */
+  @media (min-width: 900px){
+    body{font-size:15px}
+    .app{max-width:1240px;padding:16px 24px 32px 236px}
+    nav{top:0;bottom:0;right:auto;width:212px;grid-template-columns:1fr;grid-auto-rows:min-content;align-content:start;gap:4px;border-top:0;border-right:1px solid var(--line);padding:132px 12px 12px}
+    nav button{flex-direction:row;justify-content:flex-start;gap:12px;font-size:15px;padding:11px 14px}
+    .solo-pc{display:block}
+    .toast{bottom:24px}
+    #v-inicio.on{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);column-gap:16px;align-items:start;
+      grid-template-areas:"aviso aviso" "primer primer" "equipos equipos" "resumen resumen" "medidas medidas" "act act" "graf estado" "graf control"}
+    #clima{grid-area:aviso} #f-primer{grid-area:primer} #equipos{grid-area:equipos} #c-resumen{grid-area:resumen}
+    #v-inicio .grande{grid-area:medidas;grid-template-columns:repeat(2,minmax(0,1fr))} #actualizado{grid-area:act;margin-bottom:12px}
+    #c-graf{grid-area:graf;margin-top:0!important} #c-estado{grid-area:estado;margin-top:0!important} #c-control{grid-area:control}
+    .graf svg{height:320px}
+    #v-ajustes.on,#v-clima.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+    #v-ajustes .card,#v-clima .card{margin-bottom:0}
+    .filtros{grid-template-columns:2fr 1fr 1fr 2fr}
+    #v-alarmas{max-width:980px}
+    .reg{display:grid;grid-template-columns:150px 140px 1fr;gap:10px}
+    .reg span{padding-left:0}
+    #v-ingreso,#v-conexion{max-width:520px}
+  }
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
   .toast.on{opacity:.95}
 </style>
@@ -169,13 +205,17 @@
       <div class="botones dos" style="margin-top:12px"><button type="button" class="btn" id="pr-despues">Más tarde</button><button type="submit" class="btn prim">Crear</button></div>
     </form>
     <div class="equipos" id="equipos" role="tablist" aria-label="Equipo"></div>
+    <div class="card solo-pc" id="c-resumen">
+      <h2>Todos los equipos</h2>
+      <div class="resumen" id="resumen"></div>
+    </div>
     <div class="grande">
       <div class="medida"><small>Temperatura</small><div class="v" id="temp">--<span>°C</span></div></div>
       <div class="medida"><small>Humedad</small><div class="v" id="hum">--<span>%</span></div></div>
     </div>
     <p class="nota" id="actualizado">Esperando datos del vivero…</p>
 
-    <div class="card" style="margin-top:12px">
+    <div class="card" id="c-graf" style="margin-top:12px">
       <div class="graf-cab">
         <h2>Últimas horas</h2>
         <div class="seg tres" id="rango">
@@ -194,7 +234,7 @@
       <p class="nota" id="g-nota"></p>
     </div>
 
-    <div class="card" style="margin-top:12px">
+    <div class="card" id="c-estado" style="margin-top:12px">
       <h2>Estado</h2>
       <div class="fila"><span>Equipo</span><span class="estado" id="online">—</span></div>
       <div class="fila"><span>Venteo</span><span class="estado" id="venteo">—</span></div>
@@ -202,7 +242,7 @@
       <div class="fila"><span>Sensor</span><span class="estado" id="sensor">—</span></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="c-control">
       <h2>Control</h2>
       <div class="seg" id="modo">
         <button data-modo="auto">Automático</button>
@@ -343,6 +383,13 @@
     <div id="p-cambios" hidden>
       <div class="card">
         <div class="graf-cab"><h2>Quién hizo qué</h2><button class="btn chico" id="reg-act">Actualizar</button></div>
+        <div class="filtros">
+          <div><label for="rf-quien">Quién</label><select id="rf-quien" class="campo-sel"><option value="">Todos</option></select></div>
+          <div><label for="rf-desde">Desde</label><input id="rf-desde" type="date"></div>
+          <div><label for="rf-hasta">Hasta</label><input id="rf-hasta" type="date"></div>
+          <div><label for="rf-texto">Contiene</label><input id="rf-texto" placeholder="ej: riego"></div>
+        </div>
+        <p class="nota" id="rf-cuenta"></p>
         <div id="registro"><p class="nota">Cargando…</p></div>
       </div>
       <button class="btn prim" id="reg-exportar" style="width:100%">Exportar a Excel</button>
@@ -451,6 +498,7 @@
       pill('ok', 'En línea');
       $('#c-detalle').textContent = 'Conectado a ' + cfg.host + ' como ' + cfg.user + '.';
       cliente.subscribe(['vivero/+/online', 'vivero/+/nombre'], { qos: 1 });   // para descubrir los equipos
+      if (!NATIVO) cliente.subscribe('vivero/+/estado', { qos: 0 });           // PC: el resumen muestra todos los equipos
       cliente.subscribe('vivero/clima/alerta', { qos: 1 });                     // alertas del SMN (robot)
       suscribirNodo();
       ordenar('estado', '1');  // pide el estado al instante
@@ -507,6 +555,32 @@
     if (cliente && cliente.connected) suscribirNodo();
     pintarEquipos(); pintar(); dibujar(); revisarAcceso(); pintarRegistro();
   }
+  function pintarResumen(){
+    const c = $('#resumen'); if (!c || NATIVO) return;
+    const ids = Object.keys(nodos).filter(id => nodos[id].estado || nodos[id].online !== undefined);
+    if (!ids.includes(cfg.nodo)) ids.push(cfg.nodo);
+    ids.sort((a, b) => (parseInt(a.replace(/\D/g, '')) || 0) - (parseInt(b.replace(/\D/g, '')) || 0));
+    c.innerHTML = '';
+    ids.forEach(id => {
+      const n = nodos[id] || {}, s = n.estado || (id === cfg.nodo ? estado : null);
+      const b = document.createElement('button'); b.className = 'eq' + (id === cfg.nodo ? ' on' : '');
+      const t = document.createElement('b'); const dot = document.createElement('i');
+      dot.className = n.online === true ? 'ok' : n.online === false ? 'mal' : '';
+      t.append(dot, document.createTextNode(nombreNodo(id) + (s && s.via === 'lora' ? ' · LoRa' : '')));
+      const nums = document.createElement('div'); nums.className = 'nums';
+      nums.innerHTML = '';
+      nums.append(document.createTextNode(s && s.temp != null ? s.temp.toFixed(1) : '--'));
+      const u1 = document.createElement('span'); u1.textContent = ' °C  '; nums.append(u1);
+      nums.append(document.createTextNode(s && s.hum != null ? Math.round(s.hum) : '--'));
+      const u2 = document.createElement('span'); u2.textContent = ' %'; nums.append(u2);
+      const v = s ? (NOMBRE_VENTEO[s.venteo] || [s.venteo])[0] : '—';
+      const d1 = document.createElement('small'); d1.textContent = 'Venteo: ' + v + ' · Riego: ' + (s ? (s.riego === 'on' ? 'regando' : 'apagado') : '—');
+      const d2 = document.createElement('small'); d2.textContent = s ? (s.modo === 'auto' ? 'Automático' : 'Manual') + (s.sensor_ok === false ? ' · ⚠ sensor' : '') : 'Sin datos';
+      b.append(t, nums, d1, d2);
+      b.addEventListener('click', () => cambiarNodo(id));
+      c.append(b);
+    });
+  }
   function pintarEquipos(){
     const c = $('#equipos');
     const ids = Object.keys(nodos);
@@ -524,7 +598,8 @@
       b.addEventListener('click', () => cambiarNodo(id));
       c.append(b);
     });
-    c.hidden = ids.length < 2;             // con un solo equipo no hace falta elegir
+    c.hidden = ids.length < 2 || !NATIVO && window.innerWidth >= 900;   // en la PC elige desde el resumen
+    pintarResumen();
   }
 
   // ---------- Mensajes que llegan ----------
@@ -539,6 +614,11 @@
       const n = nodos[id] || (nodos[id] = {});
       if (m[2] === 'online') n.online = (txt === 'online'); else n.nombre = txt;
       pintarEquipos();
+    }
+    if (m[2] === 'estado' && id !== 'clima' && id !== 'oficina') {       // para el resumen de la PC
+      const n = nodos[id] || (nodos[id] = {});
+      try { n.estado = JSON.parse(txt); n.cuando = Date.now(); } catch (e) {}
+      pintarResumen();
     }
     if (id !== cfg.nodo) return;           // es de otro equipo: solo lo anotamos arriba
     const sub = m[2];
@@ -753,7 +833,7 @@
   const ocultar = () => { ocultarT = setTimeout(() => { $('#g-tip').hidden = true; const c = $('#g-cur'); if (c) c.setAttribute('hidden', ''); }, 2500); };
   svgG.addEventListener('pointerup', ocultar);
   svgG.addEventListener('pointerleave', ocultar);
-  window.addEventListener('resize', dibujar);
+  window.addEventListener('resize', () => { dibujar(); pintarEquipos(); });
   setInterval(dibujar, 60e3);                      // corre el eje de tiempo aunque no lleguen datos
 
 
@@ -832,15 +912,21 @@
   // Con la app abierta se lee directo (internet nativo de Android, sin depender del revisor de
   // segundo plano). Si son datos de hace menos de 10 min, se muestran los guardados.
   let consultando = false;
+  const CLIMA_ROBOT = 'https://raw.githubusercontent.com/alexis37268-cpu/vivero--movil/datos/clima.json';   // lo deja el robot de GitHub
   async function actualizarAfuera(forzar){
     pintarAfuera();
     if (consultando) return;
     if (!forzar && afuera && Date.now() / 1000 - afuera.revisado < 10 * 60) return;
-    if (!window.ClimaRevisor) { $('#af-nota').textContent = 'Falta el revisor de clima (runners/clima.js).'; return; }
     consultando = true;
     $('#af-nota').textContent = 'Consultando la REM y el SMN…';
     try {
-      const r = await window.ClimaRevisor.revisar(new Date(), climaCfg);
+      // Celular: lee la REM directo. PC (navegador): el navegador no deja, se usa el archivo del robot.
+      let r = NATIVO && window.ClimaRevisor ? await window.ClimaRevisor.revisar(new Date(), climaCfg) : null;
+      if (!r || (!r.estacion && !r.pronostico)) {
+        const resp = await fetch(CLIMA_ROBOT + '?t=' + Math.floor(Date.now() / 60e3));
+        if (!resp.ok) throw new Error('archivo del robot: ' + resp.status);
+        r = await resp.json();
+      }
       // Si una parte falló, se sigue mostrando el último dato bueno de esa parte
       if (!r.estacion && afuera && afuera.estacion) r.estacion = afuera.estacion;
       if (!r.pronostico && afuera && afuera.pronostico) r.pronostico = afuera.pronostico;
@@ -854,6 +940,13 @@
   }
   function pintarAfuera(){
     const r = afuera; if (!r) return;
+    // Datos viejos (el robot se paró o no hay internet): que se vea bien claro
+    const edadMin = r.revisado ? (Date.now() / 1000 - r.revisado) / 60 : 0;
+    let viejo = $('#af-viejo');
+    if (!viejo) { viejo = document.createElement('div'); viejo.id = 'af-viejo'; viejo.className = 'clima-viejo'; $('#c-afuera').insertBefore(viejo, $('#c-afuera').children[1]); }
+    viejo.hidden = edadMin < 45;
+    viejo.textContent = '⚠ Datos del clima de hace ' + (edadMin < 120 ? Math.round(edadMin) + ' min' : Math.round(edadMin / 60) + ' h') +
+      (r.fuente === 'robot' ? ': el robot de GitHub no los actualizó (revisá la pestaña Actions del repo).' : '.');
     const e = r.estacion;
     $('#af-temp').textContent   = e ? coma(e.temp) + ' °C' : '--';
     $('#af-hum').textContent    = e ? Math.round(e.hum) + ' %' : '--';
@@ -881,6 +974,7 @@
     $('#af-nota').style.color = err ? 'var(--rojo)' : '';
   }
   $('#af-act').addEventListener('click', () => actualizarAfuera(true));
+  setInterval(pintarAfuera, 60e3);
 
   // Permisos: notificaciones + que Android no frene la app (batería)
   const MARCAS_AUTO = /xiaomi|redmi|poco|oppo|realme|vivo|huawei|honor|samsung/;
@@ -985,7 +1079,7 @@
     const s = sesiones[cfg.nodo];
     if (!s) return null;
     if (Date.now() - s.ultimo > SESION_MS) { delete sesiones[cfg.nodo]; guardar('dm.sesiones', sesiones); return null; }
-    if (usuariosEquipo && usuariosEquipo.length && !usuariosEquipo.some(u => u.n.toLowerCase() === s.nombre.toLowerCase())) { delete sesiones[cfg.nodo]; guardar('dm.sesiones', sesiones); return null; }   // lo dieron de baja
+    if (usuariosEquipo && usuariosEquipo.length && !usuariosEquipo.some(u => u.n.toLowerCase() === s.nombre.toLowerCase() && (NATIVO || u.r === 'admin'))) { delete sesiones[cfg.nodo]; guardar('dm.sesiones', sesiones); return null; }   // lo dieron de baja (o en la PC dejó de ser admin)
     return s;
   }
   function puedeAdmin(){
@@ -1007,9 +1101,9 @@
     const pedir = hay && !s;
     if (pedir && !bloqueadoIngreso) {
       const sel = $('#ing-usuario'); sel.innerHTML = '';
-      usuariosEquipo.forEach(u => { const o = document.createElement('option'); o.value = u.n; o.textContent = u.n + (u.r === 'admin' ? ' (administrador)' : ''); sel.append(o); });
+      usuariosEquipo.filter(u => NATIVO || u.r === 'admin').forEach(u => { const o = document.createElement('option'); o.value = u.n; o.textContent = u.n + (u.r === 'admin' ? ' (administrador)' : ''); sel.append(o); });
       const ultimo = leer('dm.ultimoUsuario', ''); if (ultimo) sel.value = ultimo;
-      $('#ing-tit').textContent = 'Ingresar a ' + nombreNodo(cfg.nodo);
+      $('#ing-tit').textContent = (NATIVO ? 'Ingresar a ' : 'Administración · ') + nombreNodo(cfg.nodo);
       $('#ing-pin').value = '';
       if (!$('#v-conexion').classList.contains('on')) mostrarVista('ingreso');
     }
@@ -1029,6 +1123,7 @@
     const nombre = $('#ing-usuario').value, pin = $('#ing-pin').value;
     const u = (usuariosEquipo || []).find(x => x.n === nombre);
     if (!u || hashPin(nombre, pin) !== u.h) { $('#ing-nota').textContent = 'PIN incorrecto.'; $('#ing-nota').style.color = 'var(--rojo)'; $('#ing-pin').value = ''; return; }
+    if (!NATIVO && u.r !== 'admin') { $('#ing-nota').textContent = 'En la PC solo entran administradores. Los operarios usan la app del celular.'; $('#ing-nota').style.color = 'var(--rojo)'; $('#ing-pin').value = ''; return; }
     sesiones[cfg.nodo] = { nombre: u.n, ultimo: Date.now() }; guardar('dm.sesiones', sesiones);
     guardar('dm.ultimoUsuario', u.n);
     $('#ing-nota').textContent = 'Pedile el PIN al administrador.'; $('#ing-nota').style.color = '';
@@ -1118,12 +1213,26 @@
     registro = todo.reverse();                         // lo más nuevo arriba
     regPartes = null; pintarRegistro();
   }
+  function registroFiltrado(){
+    const q = $('#rf-quien').value, tx = $('#rf-texto').value.trim().toLowerCase();
+    const d = $('#rf-desde').value ? new Date($('#rf-desde').value + 'T00:00:00').getTime() : -Infinity;
+    const h = $('#rf-hasta').value ? new Date($('#rf-hasta').value + 'T23:59:59').getTime() : Infinity;
+    return registro.filter(r => (!q || r.q === q) && (!tx || r.a.toLowerCase().includes(tx) || r.q.toLowerCase().includes(tx)) &&
+                                ((!r.t && d === -Infinity) || (r.t >= d && r.t <= h)));
+  }
   function pintarRegistro(){
+    const sel = $('#rf-quien'), actual = sel.value;
+    const quienes = Array.from(new Set(registro.map(r => r.q))).sort();
+    sel.innerHTML = '<option value="">Todos</option>';
+    quienes.forEach(q => { const o = document.createElement('option'); o.value = q; o.textContent = q; sel.append(o); });
+    sel.value = quienes.includes(actual) ? actual : '';
     const c = $('#registro');
     if (!(cfgEquipo && cfgEquipo.usuarios)) { c.innerHTML = '<p class="nota">Este equipo todavía no guarda el registro de cambios (hay que actualizarle el programa).</p>'; return; }
-    if (!registro.length) { c.innerHTML = '<p class="nota">Sin cambios registrados.</p>'; return; }
+    if (!registro.length) { c.innerHTML = '<p class="nota">Sin cambios registrados.</p>'; $('#rf-cuenta').textContent = ''; return; }
+    const lista = registroFiltrado();
+    $('#rf-cuenta').textContent = lista.length === registro.length ? registro.length + ' acciones' : lista.length + ' de ' + registro.length + ' acciones';
     c.innerHTML = '';
-    registro.slice(0, 300).forEach(r => {
+    lista.slice(0, 300).forEach(r => {
       const d = document.createElement('div'); d.className = 'reg';
       const t = document.createElement('time'); t.textContent = r.t ? fecha(new Date(r.t)) : 'sin hora';
       const q = document.createElement('b'); q.textContent = r.q;
@@ -1134,6 +1243,7 @@
     });
   }
   $('#reg-act').addEventListener('click', pedirRegistro);
+  ['#rf-quien', '#rf-desde', '#rf-hasta', '#rf-texto'].forEach(id => $(id).addEventListener('input', pintarRegistro));
   $$('#sol-alarmas button').forEach(b => b.addEventListener('click', () => {
     solapa = b.dataset.sol;
     $$('#sol-alarmas button').forEach(x => x.classList.toggle('on', x === b));
@@ -1143,8 +1253,9 @@
 
   // Exportar: CSV con ";" (el Excel en castellano lo abre directo) y BOM para los acentos
   async function exportarRegistro(){
-    if (!registro.length) { avisar('No hay cambios para exportar'); return; }
-    const filas = [['Fecha', 'Hora', 'Quién', 'Qué']].concat(registro.slice().reverse().map(r => {
+    const lista = registroFiltrado();                 // se exporta lo que se ve (con los filtros)
+    if (!lista.length) { avisar('No hay cambios para exportar'); return; }
+    const filas = [['Fecha', 'Hora', 'Quién', 'Qué']].concat(lista.slice().reverse().map(r => {
       const d = r.t ? new Date(r.t) : null;
       return [d ? d.toLocaleDateString('es-AR') : 'sin hora', d ? d.toLocaleTimeString('es-AR', { hour12: false }) : '', r.q, r.a];
     }));
@@ -1261,6 +1372,8 @@
 
   // ---------- Arranque ----------
   cargarConexion(); pintarAlarmas(); pintar(); pintarEquipos(); dibujar(); iniciarClima();
+  // PC: registrar el service worker para que el navegador ofrezca "Instalar app"
+  if (!NATIVO && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   if (cfg.pass) conectar();
   else { pill('aviso', 'Falta configurar'); $('nav button[data-vista=conexion]').click(); }
 })();

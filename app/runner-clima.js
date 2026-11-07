@@ -93,7 +93,7 @@ function leerPronostico(html) {
     dias.push({
       dia: c['Titulo' + k],
       min: num(c['TempMin' + k]), max: num(c['TempMax' + k]),
-      cielo: [c['NombreCondicion' + k], kt && c['NombreCondicion' + kt]].filter(Boolean).join(' / '),
+      cielo: [c['NombreCondicion' + k], kt && c['NombreCondicion' + kt]].filter((v, i, l) => v && l.indexOf(v) === i).join(' / '),   // sin repetir si mañana = tarde
       lluvia: /Probabilidad/i.test(c['Probabilidades' + k] || '') || /Probabilidad/i.test((kt && c['Probabilidades' + kt]) || ''),
     });
   });

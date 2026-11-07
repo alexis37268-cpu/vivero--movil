@@ -136,3 +136,12 @@ GitHub pausa los workflows programados de un repo público después de 60 días 
 - **Operario**: modo, venteo y riego. **Administrador**: además ajustes y usuarios (lo controla la app y también el ESP).
 - **Registro**: el ESP anota `fecha|quién|qué` (incluye `panel` = pulsadores, `automatico` = lógica sola, `equipo` = encendido) en la flash, ~300 líneas (2 archivos de 150). Cada acción nueva sale al instante por `registro/nuevo`.
 - Seguridad: sirve para uso interno. Quien tenga la clave del broker puede mandar órdenes a mano con cualquier nombre.
+
+## Versión para PC (página web, solo administradores)
+
+La misma app publicada en GitHub Pages: **https://alexis37268-cpu.github.io/vivero--movil/** (workflow *Pagina PC*).
+- Se abre en Chrome o Edge; con **Instalar app** queda como programa en el escritorio. Se actualiza sola.
+- En pantallas anchas: barra lateral, resumen de todos los equipos, gráfico grande, registro con filtros.
+- **Solo entran administradores** (los operarios usan la app del celular).
+- La pestaña Clima usa el archivo del **robot del clima** (workflow *Clima (robot)*, cada 15 min, rama `datos`), porque el navegador no deja leer la REM directo. Si el robot se para, la página avisa "Datos del clima de hace X".
+- Activarla una sola vez: Settings → Pages → Source: **GitHub Actions**.

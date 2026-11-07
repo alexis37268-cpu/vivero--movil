@@ -1,0 +1,38 @@
+# Publica la app como pagina web (version para PC) en GitHub Pages.
+# Hay que activarlo UNA vez: Settings > Pages > Source: "GitHub Actions".
+name: Pagina PC
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/pagina.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pagina
+  cancel-in-progress: true
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: |
+          npm install
+          node prueba-clima/prueba.js
+          node armar-www.js
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/www
+      - id: deploy
+        uses: actions/deploy-pages@v4
