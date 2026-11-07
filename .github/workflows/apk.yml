@@ -35,6 +35,13 @@ jobs:
         run: |
           cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
           cp app/build/outputs/apk/debug/app-debug.apk ../vivero-sol-puntano.apk
+      - name: Revisar el APK (revisor de clima adentro y permisos)
+        run: |
+          unzip -l vivero-sol-puntano.apk | grep -q 'assets/public/runners/clima.js' && echo "OK revisor de clima adentro"
+          AAPT=$(ls -d $ANDROID_HOME/build-tools/*/ | sort -V | tail -1)aapt
+          $AAPT dump permissions vivero-sol-puntano.apk | tee permisos.txt
+          grep -q POST_NOTIFICATIONS permisos.txt && grep -q REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permisos.txt && echo "OK permisos de avisos"
+          if grep -q LOCATION permisos.txt; then echo "MAL: quedo un permiso de ubicacion"; exit 1; else echo "OK sin permisos de ubicacion"; fi
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ultima
